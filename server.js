@@ -68,5 +68,4 @@ async function boot(){if(process.env.DATABASE_URL){await pool.query(`CREATE TABL
 boot().catch(e=>{console.error(e);process.exit(1)});
 const PORT = process.env.PORT || 3000;
 
-  console.log(`Server running on port ${PORT}`);
-});
+  console.log(`Server running on port ${PORT}`);;
