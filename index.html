@@ -25,7 +25,7 @@ async function openPack(id){
     });
 
     console.log('팩 개봉 결과:',d);
-
+console.log('첫 카드 데이터:', d.cards[0]);
     me.cash-=d.pack.price;
     opening=d.cards;
     idx=0;
@@ -40,7 +40,23 @@ async function openPack(id){
     toast(e.message);
   }
 }
-function imageCandidates(c){const b=(c.image||'').replace(/\/$/,'');return b?[`${b}/high.webp`,`${b}/high.png`,`${b}/low.webp`,`${b}/low.png`,`${b}/high.jpg`]:[]}
+function imageCandidates(c){
+  const b=String(c?.image||'').replace(/\/$/,'');
+  if(!b) return [];
+
+  // 이미 확장자가 붙어 있는 URL이면 그대로 사용
+  if(/\.(webp|png|jpg|jpeg)$/i.test(b)){
+    return [b];
+  }
+
+  return [
+    `${b}/high.webp`,
+    `${b}/high.png`,
+    `${b}/low.webp`,
+    `${b}/low.png`,
+    `${b}/high.jpg`
+  ];
+}
 function renderCard(){const stage=$('#stage');stage.innerHTML='';if(idx>=opening.length){finish();return}const c=opening[idx],im=document.createElement('img');im.className='reveal';im.alt=c.name||'Pokemon Card';im.draggable=false;const urls=imageCandidates(c);let k=0;im.onload=()=>{im.style.background='transparent'};im.onerror=()=>{if(k<urls.length)im.src=urls[k++];else{im.removeAttribute('src');im.alt='';im.style.background='linear-gradient(145deg,#1b2740,#0b1020)';}};if(urls.length)im.src=urls[k++];stage.appendChild(im);$('#prog').style.width=(idx/opening.length*100)+'%';$('#hint').textContent=idx===opening.length-1?'✨ 마지막 카드! 이 카드에서만 좋은 카드가 나올 수 있습니다.':`↑ 위로 스와이프해서 ${idx+1}번째 카드 공개`;
   let y=0;im.onpointerdown=e=>{if(busy)return;y=e.clientY;try{im.setPointerCapture(e.pointerId)}catch(_){}};im.onpointerup=e=>{if(busy)return;if(y-e.clientY>60)nextCard()};
 }
