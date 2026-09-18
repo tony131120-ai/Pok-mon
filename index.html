@@ -14,7 +14,7 @@ async function login(){try{const d=await api('/api/login',{method:'POST',body:JS
 async function start(){try{const d=await api('/api/me');me=d.user;inventory=d.inventory||[];const p=await api('/api/packs');packs=p.sort((a,b)=>a.price-b.price);$('#auth').classList.add('hidden');$('#main').classList.remove('hidden');refresh();connect();}catch(e){localStorage.removeItem('pp_token');token=null;toast(e.message)}}
 function logout(){localStorage.removeItem('pp_token');location.reload()}
 function refresh(){$('#user').textContent=me?.username||'게스트';$('#money').textContent=money(me?.cash);renderPacks();renderInv();renderRank();renderOnline()}
-function packLogo(p){return `https://assets.tcgdex.net/en/${p.set}/${p.set}/logo.webp`}
+function packLogo(p){return `https://assets.tcgdex.net/en/${p.set}/logo.webp`}
 function renderPacks(){$('#packs').innerHTML='<div class="grid">'+packs.map(p=>`<article class="pack"><div class="packimg"><img loading="lazy" src="${packLogo(p)}" onerror="this.onerror=null;this.src='https://assets.tcgdex.net/en/${p.set}/logo.webp';"></div><h3>${esc(p.name)}</h3><div class="muted">${p.n}장 · 마지막 슬롯: ${esc(p.chase)}</div><div class="price">${money(p.price)}</div><button class="btn" onclick="openPack(${p.id})">팩 열기</button></article>`).join('')+'</div>'}
 function esc(x){return String(x??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 async function openPack(id){try{const d=await api('/api/open',{method:'POST',body:JSON.stringify({packId:id})});me.cash-=d.pack.price;opening=d.cards;idx=0;busy=false;$('#mtitle').textContent=d.pack.name;$('#modal').classList.remove('hidden');renderCard();}catch(e){toast(e.message)}}
