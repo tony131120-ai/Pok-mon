@@ -70,7 +70,9 @@ io.on('connection',socket=>{
   socket.on('battle:answer',({to,accepted})=>{const me=online.get(socket.data.userId);const target=[...online.entries()].find(([_,v])=>v.username===to);if(me&&target)io.to(target[1].socketId).emit('battle:answer',{from:me.username,accepted:!!accepted});});
   socket.on('disconnect',()=>{if(socket.data.userId){online.delete(socket.data.userId);io.emit('online',onlineList());}});
 });
-app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 async function boot(){if(process.env.DATABASE_URL){await pool.query(`CREATE TABLE IF NOT EXISTS users(id SERIAL PRIMARY KEY,username VARCHAR(32) UNIQUE NOT NULL,password_hash TEXT NOT NULL,cash BIGINT NOT NULL DEFAULT 100000,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());CREATE TABLE IF NOT EXISTS inventory(id BIGSERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,card_id TEXT NOT NULL,card_name TEXT NOT NULL,image TEXT,rarity TEXT,price BIGINT NOT NULL DEFAULT 0,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());CREATE INDEX IF NOT EXISTS inventory_user_idx ON inventory(user_id);`);}server.listen(PORT,()=>console.log('PokéPack Vault online on '+PORT));}
 boot().catch(e=>{console.error(e);process.exit(1)});
 const PORT = process.env.PORT || 3000;
