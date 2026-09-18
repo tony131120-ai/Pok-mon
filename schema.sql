@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(32) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  cash BIGINT NOT NULL DEFAULT 100000,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS inventory (
+  id BIGSERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL,
+  card_name TEXT NOT NULL,
+  image TEXT,
+  rarity TEXT,
+  price BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS inventory_user_idx ON inventory(user_id);
