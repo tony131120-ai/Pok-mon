@@ -18,7 +18,7 @@ const TCG='https://api.tcgdex.net/v2/en';
 const PORT=process.env.PORT||3000;
 
 app.use(express.json({limit:'1mb'}));
-app.use(express.static(path.join(__dirname,'public')));
+app.use(express.static(__dirname));
 
 const packNames=[['Rayquaza VMAX Sky',30000,'sv6','Rayquaza VMAX'],['Charizard Gold',1500000,'swsh3','Charizard VMAX'],['Moonbreon Vault',750000,'swsh7','Umbreon VMAX'],['Pikachu Crown',500000,'swsh8','Pikachu VMAX'],['Lugia Silver',420000,'swsh12','Lugia VSTAR'],['Giratina Lost',390000,'swsh11','Giratina VSTAR'],['Mew Fusion',350000,'swsh8','Mew VMAX'],['Gengar Fusion',330000,'swsh8','Gengar VMAX'],['Rayquaza Evolving',280000,'swsh7','Rayquaza VMAX'],['Sylveon Evolving',240000,'swsh7','Sylveon VMAX'],['Eevee Heroes',200000,'swsh6','Umbreon VMAX'],['Charizard Darkness',180000,'swsh3','Charizard VMAX'],['Shining Fates',160000,'swsh45','Charizard VMAX'],['Celebrations',140000,'cel25','Charizard'],['Base Set Vault',120000,'base1','Charizard'],['Scarlet Elite',100000,'sv1','Miraidon ex'],['Paldea Evolved',85000,'sv2','Iono'],['Obsidian Flames',75000,'sv3','Charizard ex'],['Paradox Rift',65000,'sv4','Gholdengo ex'],['Temporal Forces',60000,'sv5','Raging Bolt ex'],['Twilight Masquerade',55000,'sv6','Greninja ex'],['Stellar Crown',50000,'sv7','Terapagos ex'],['Surging Sparks',45000,'sv8','Pikachu ex'],['Prismatic Echo',40000,'sv8pt5','Umbreon ex'],['Destined Rivals',35000,'sv10',"Team Rocket's Mewtwo ex"],['Mega Evolution',30000,'sv8pt5','Mega Lucario ex'],['Classic Hits',25000,'swsh12','Charizard'],['Modern Hits',20000,'sv4','Groudon ex'],['Budget Shine',12000,'sv2','Magikarp'],['Starter Pack',5000,'sv1','Pikachu']];
 const packs=packNames.map((x,i)=>({id:i+1,name:x[0],price:x[1],set:x[2],chase:x[3],n:7+(i%2)})).sort((a,b)=>a.price-b.price);
@@ -64,7 +64,7 @@ io.on('connection',socket=>{
   socket.on('battle:answer',({to,accepted})=>{const me=online.get(socket.data.userId);const target=[...online.entries()].find(([_,v])=>v.username===to);if(me&&target)io.to(target[1].socketId).emit('battle:answer',{from:me.username,accepted:!!accepted});});
   socket.on('disconnect',()=>{if(socket.data.userId){online.delete(socket.data.userId);io.emit('online',onlineList());}});
 });
-app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 async function boot(){if(process.env.DATABASE_URL){await pool.query(`CREATE TABLE IF NOT EXISTS users(id SERIAL PRIMARY KEY,username VARCHAR(32) UNIQUE NOT NULL,password_hash TEXT NOT NULL,cash BIGINT NOT NULL DEFAULT 100000,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());CREATE TABLE IF NOT EXISTS inventory(id BIGSERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,card_id TEXT NOT NULL,card_name TEXT NOT NULL,image TEXT,rarity TEXT,price BIGINT NOT NULL DEFAULT 0,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());CREATE INDEX IF NOT EXISTS inventory_user_idx ON inventory(user_id);`);}server.listen(PORT,()=>console.log('PokéPack Vault online on '+PORT));}
 boot().catch(e=>{console.error(e);process.exit(1)});
 const PORT = process.env.PORT || 3000;
