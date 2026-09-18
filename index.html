@@ -17,7 +17,29 @@ function refresh(){$('#user').textContent=me?.username||'게스트';$('#money').
 function packLogo(p){return `https://assets.tcgdex.net/en/${p.set}/logo.webp`}
 function renderPacks(){$('#packs').innerHTML='<div class="grid">'+packs.map(p=>`<article class="pack"><div class="packimg"><img loading="lazy" src="${packLogo(p)}" onerror="this.onerror=null;this.src='https://assets.tcgdex.net/en/${p.set}/logo.webp';"></div><h3>${esc(p.name)}</h3><div class="muted">${p.n}장 · 마지막 슬롯: ${esc(p.chase)}</div><div class="price">${money(p.price)}</div><button class="btn" onclick="openPack(${p.id})">팩 열기</button></article>`).join('')+'</div>'}
 function esc(x){return String(x??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
-async function openPack(id){try{const d=await api('/api/open',{method:'POST',body:JSON.stringify({packId:id})});me.cash-=d.pack.price;opening=d.cards;idx=0;busy=false;$('#mtitle').textContent=d.pack.name;$('#modal').classList.remove('hidden');renderCard();}catch(e){toast(e.message)}}
+async function openPack(id){
+  try{
+    const d=await api('/api/open',{
+      method:'POST',
+      body:JSON.stringify({packId:id})
+    });
+
+    console.log('팩 개봉 결과:',d);
+
+    me.cash-=d.pack.price;
+    opening=d.cards;
+    idx=0;
+    busy=false;
+
+    $('#mtitle').textContent=d.pack.name;
+    $('#modal').classList.remove('hidden');
+
+    renderCard();
+  }catch(e){
+    console.error('팩 개봉 오류:',e);
+    toast(e.message);
+  }
+}
 function imageCandidates(c){const b=(c.image||'').replace(/\/$/,'');return b?[`${b}/high.webp`,`${b}/high.png`,`${b}/low.webp`,`${b}/low.png`,`${b}/high.jpg`]:[]}
 function renderCard(){const stage=$('#stage');stage.innerHTML='';if(idx>=opening.length){finish();return}const c=opening[idx],im=document.createElement('img');im.className='reveal';im.alt=c.name||'Pokemon Card';im.draggable=false;const urls=imageCandidates(c);let k=0;im.onload=()=>{im.style.background='transparent'};im.onerror=()=>{if(k<urls.length)im.src=urls[k++];else{im.removeAttribute('src');im.alt='';im.style.background='linear-gradient(145deg,#1b2740,#0b1020)';}};if(urls.length)im.src=urls[k++];stage.appendChild(im);$('#prog').style.width=(idx/opening.length*100)+'%';$('#hint').textContent=idx===opening.length-1?'✨ 마지막 카드! 이 카드에서만 좋은 카드가 나올 수 있습니다.':`↑ 위로 스와이프해서 ${idx+1}번째 카드 공개`;
   let y=0;im.onpointerdown=e=>{if(busy)return;y=e.clientY;try{im.setPointerCapture(e.pointerId)}catch(_){}};im.onpointerup=e=>{if(busy)return;if(y-e.clientY>60)nextCard()};
