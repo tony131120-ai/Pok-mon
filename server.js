@@ -15,7 +15,7 @@ const io=new SocketServer(server,{cors:{origin:true,credentials:true}});
 const pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_URL?{rejectUnauthorized:false}:false});
 const JWT_SECRET=process.env.JWT_SECRET||'change-this-secret-on-render';
 const TCG='https://api.tcgdex.net/v2/en';
-const PORT=process.env.PORT||3000;
+const
 
 app.use(express.json({limit:'1mb'}));
 app.use(express.static(__dirname));
