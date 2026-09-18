@@ -12,7 +12,14 @@ const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const app=express();
 const server=http.createServer(app);
 const io=new SocketServer(server,{cors:{origin:true,credentials:true}});
-const pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_URL?{rejectUnauthorized:false}:false});
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false }
+    : false
+});
 const JWT_SECRET=process.env.JWT_SECRET||'change-this-secret-on-render';
 const TCG='https://api.tcgdex.net/v2/en';
 
