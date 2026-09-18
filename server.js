@@ -12,7 +12,7 @@ const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const app=express();
 const server=http.createServer(app);
 const io=new SocketServer(server,{cors:{origin:true,credentials:true}});
-const { Pool } = require("pg");
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
