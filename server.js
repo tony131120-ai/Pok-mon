@@ -1581,135 +1581,124 @@ io.on(
        BATTLE ANSWER
     --------------------------------------------- */
 
-    socket.on(
-      'battle:answer',
-      ({ to, accepted }) => {
-        const target =
-          [...online.entries()]
-            .find(
-              ([, value]) =>
-                value.username === to
-            );
-
-        if (!target) {
-          return;
-        }
-
-        const targetId =
-          Number(target[0]);
-
-        const meId =
-          Number(socket.data.userId);
-
-        const request =
-          pendingRequests.get(
-            meId
-          );
-
-        if (
-          !request ||
-          request.from !==
-            targetId
-        ) {
-          return;
-        }
-
-        pendingRequests.delete(
-          meId
+  socket.on(
+  'battle:answer',
+  ({ to, accepted }) => {
+    const target =
+      [...online.entries()]
+        .find(
+          ([, value]) =>
+            value.username === to
         );
 
-        const requester =
-          online.get(targetId);
+    if (!target) {
+      return;
+    }
 
-        if (!requester) {
-          return;
+    const targetId =
+      Number(target[0]);
+
+    const meId =
+      Number(socket.data.userId);
+
+    const request =
+      pendingRequests.get(meId);
+
+    if (
+      !request ||
+      request.from !== targetId
+    ) {
+      return;
+    }
+
+    pendingRequests.delete(meId);
+
+    const requester =
+      online.get(targetId);
+
+    if (!requester) {
+      return;
+    }
+
+    // 배틀 거절
+    if (!accepted) {
+      io.to(requester.socketId).emit(
+        'battle:answer',
+        {
+          from:
+            online.get(meId)?.username || '',
+          accepted: false
         }
+      );
 
-        if (!accepted) {
-          io.to(
-            requester.socketId
-          ).emit(
-            'battle:answer',
-            {
-              from:
-                online.get(meId)
-                  ?.username || '',
-              accepted: false
-            }
-          );
+      return;
+    }
 
-          return;
-        }
+    const opponent =
+      online.get(meId);
 
-        const opponent =
-          online.get(meId);
+    if (!opponent) {
+      return;
+    }
 
-        const battleId =
-          `${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`;
+    const battleId =
+      `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
 
-             const newBattle = {
-          id: battleId,
+    const newBattle = {
+      id: battleId,
 
-          p1: {
-            id: targetId,
-            username: requester.username,
-            socketId: requester.socketId,
-            selected: null,
-            deck: null,
-            active: null,
-            activeSlot: null
-          },
+      p1: {
+        id: targetId,
+        username: requester.username,
+        socketId: requester.socketId,
+        selected: null,
+        deck: null,
+        active: null,
+        activeSlot: null
+      },
 
-          p2: {
-            id: meId,
-            username: opponent.username,
-            socketId: opponent.socketId,
-            selected: null,
-            deck: null,
-            active: null,
-            activeSlot: null
-          },
+      p2: {
+        id: meId,
+        username: opponent.username,
+        socketId: opponent.socketId,
+        selected: null,
+        deck: null,
+        active: null,
+        activeSlot: null
+      },
 
-          status: 'selecting',
-          turn: null
-        };
+      status: 'selecting',
+      turn: null
+    };
 
-        battles.set(
-          battleId,
-          newBattle
-        );
-
-        /*
-         * 배틀 시작 알림
-         * 두 사람 모두 6장 선택 화면으로 이동
-         */
-        if (requester.socketId) {
-          io.to(
-            requester.socketId
-          ).emit(
-            'battle:started',
-            {
-              battleId,
-              opponent: opponent.username
-            }
-          );
-        }
-
-        if (opponent.socketId) {
-          io.to(
-            opponent.socketId
-          ).emit(
-            'battle:started',
-            {
-              battleId,
-              opponent: requester.username
-            }
-          );
-        }
-              }
+    battles.set(
+      battleId,
+      newBattle
     );
+
+    // 신청자에게 카드 선택창 열기
+    io.to(requester.socketId).emit(
+      'battle:started',
+      {
+        battleId,
+        opponent: opponent.username,
+        status: 'selecting'
+      }
+    );
+
+    // 수락자에게 카드 선택창 열기
+    io.to(opponent.socketId).emit(
+      'battle:started',
+      {
+        battleId,
+        opponent: requester.username,
+        status: 'selecting'
+      }
+    );
+  }
+);
    /* ---------------------------------------------
    SELECT SIX
 --------------------------------------------- */
