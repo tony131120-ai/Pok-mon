@@ -1458,7 +1458,7 @@ io.on(
             .toString(36)
             .slice(2, 8)}`;
 
-        const battle = {
+      const newBattle = {
           id: battleId,
 
           p1: {
