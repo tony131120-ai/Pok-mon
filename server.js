@@ -1585,52 +1585,73 @@ io.on(
        BATTLE ANSWER
     --------------------------------------------- */
 
-  socket.on(
+socket.on(
   'battle:answer',
   ({ to, accepted }) => {
-    const target =
-      [...online.entries()]
-        .find(
-          ([, value]) =>
-            value.username === to
-        );
+
+    const meId = Number(socket.data.userId);
+
+    // 현재 접속 중인 상대 찾기
+    const target = [...online.entries()].find(
+      ([, value]) =>
+        value.username === to
+    );
 
     if (!target) {
+      socket.emit(
+        'toast',
+        '상대방을 찾을 수 없습니다.'
+      );
       return;
     }
 
-    const targetId =
-      Number(target[0]);
+    const targetId = Number(target[0]);
 
-    const meId =
-      Number(socket.data.userId);
+    // 내가 받은 배틀 신청 확인
+    const request = pendingRequests.get(meId);
 
-    const request =
-      pendingRequests.get(meId);
+    if (!request) {
+      socket.emit(
+        'toast',
+        '배틀 신청 정보를 찾을 수 없습니다.'
+      );
+      return;
+    }
 
+    // 신청한 사람이 맞는지 확인
     if (
-      !request ||
-      request.from !== targetId
+      Number(request.from) !== targetId
     ) {
+      socket.emit(
+        'toast',
+        '잘못된 배틀 신청입니다.'
+      );
       return;
     }
 
+    // 신청 삭제
     pendingRequests.delete(meId);
 
-    const requester =
-      online.get(targetId);
+    const requester = online.get(targetId);
+    const opponent = online.get(meId);
 
-    if (!requester) {
+    if (!requester || !opponent) {
+      socket.emit(
+        'toast',
+        '상대방의 연결 정보를 찾을 수 없습니다.'
+      );
       return;
     }
 
-    // 배틀 거절
-    if (!accepted) {
+    /*
+     * 거절
+     */
+    if (accepted !== true) {
+
       io.to(requester.socketId).emit(
         'battle:answer',
         {
-          from:
-            online.get(meId)?.username || '',
+          from: opponent.username,
           accepted: false
         }
       );
@@ -1638,13 +1659,29 @@ io.on(
       return;
     }
 
-    const opponent =
-      online.get(meId);
+    /*
+     * 이미 배틀 중인지 확인
+     */
+    if (
+      battleForUser(targetId) ||
+      battleForUser(meId)
+    ) {
+      io.to(requester.socketId).emit(
+        'toast',
+        '이미 배틀 중인 플레이어가 있습니다.'
+      );
 
-    if (!opponent) {
+      socket.emit(
+        'toast',
+        '이미 배틀 중인 플레이어가 있습니다.'
+      );
+
       return;
     }
 
+    /*
+     * 새로운 배틀 생성
+     */
     const battleId =
       `${Date.now()}-${Math.random()
         .toString(36)
@@ -1682,23 +1719,25 @@ io.on(
       newBattle
     );
 
-    // 신청자에게 카드 선택창 열기
+    /*
+     * 신청한 사람
+     */
     io.to(requester.socketId).emit(
       'battle:started',
       {
         battleId,
-        opponent: opponent.username,
-        status: 'selecting'
+        opponent: opponent.username
       }
     );
 
-    // 수락자에게 카드 선택창 열기
+    /*
+     * 수락한 사람
+     */
     io.to(opponent.socketId).emit(
       'battle:started',
       {
         battleId,
-        opponent: requester.username,
-        status: 'selecting'
+        opponent: requester.username
       }
     );
   }
