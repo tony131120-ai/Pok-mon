@@ -1540,142 +1540,171 @@ if (s2) {
     }
   );
 }
-    /* ---------------------------------------------
-       SELECT SIX
-    --------------------------------------------- */
+   /* ---------------------------------------------
+   SELECT SIX
+--------------------------------------------- */
 
-    socket.on(
-      'battle:select6',
-      async ({ battleId, ids }) => {
-        try {
-          const battle =
-            battles.get(
-              battleId
-            );
+socket.on(
+  'battle:select6',
+  async ({ battleId, ids }) => {
+    try {
+      const battle =
+        battles.get(battleId);
 
-          if (!battle) {
-            throw new Error(
-              '배틀을 찾을 수 없습니다.'
-            );
-          }
+      if (!battle) {
+        throw new Error(
+          '배틀을 찾을 수 없습니다.'
+        );
+      }
 
-          const userId =
-            Number(
-              socket.data.userId
-            );
+      const userId =
+        Number(socket.data.userId);
 
-          const player =
-            playerOf(
-              battle,
-              userId
-            );
+      const player =
+        playerOf(
+          battle,
+          userId
+        );
 
-          if (!player) {
-            throw new Error(
-              '배틀 참가자가 아닙니다.'
-            );
-          }
+      if (!player) {
+        throw new Error(
+          '배틀 참가자가 아닙니다.'
+        );
+      }
 
-          if (
-            battle.status !==
-            'selecting'
-          ) {
-            throw new Error(
-              '지금은 6장 선택 시간이 아닙니다.'
-            );
-          }
+      if (
+        battle.status !==
+        'selecting'
+      ) {
+        throw new Error(
+          '지금은 6장 선택 시간이 아닙니다.'
+        );
+      }
 
-          if (
-            !Array.isArray(ids) ||
-            ids.length !== 6
-          ) {
-            throw new Error(
-              '포켓몬 카드 6장을 선택하세요.'
-            );
-          }
+      if (
+        !Array.isArray(ids) ||
+        ids.length !== 6
+      ) {
+        throw new Error(
+          '포켓몬 카드 6장을 선택하세요.'
+        );
+      }
 
-          player.selected =
-            await loadInventoryCards(
-              userId,
-              ids
-            );
+      player.selected =
+        await loadInventoryCards(
+          userId,
+          ids
+        );
 
-          socket.emit(
-            'battle:selected',
+      socket.emit(
+        'battle:selected',
+        {
+          ok: true
+        }
+      );
+
+      /*
+       * 두 플레이어가 모두 6장을
+       * 선택했는지 확인
+       */
+      if (
+        battle.p1.selected &&
+        battle.p2.selected
+      ) {
+        battle.status =
+          'chooseActive';
+
+        battle.p1.deck =
+          shuffle(
+            battle.p1.selected
+          );
+
+        battle.p2.deck =
+          shuffle(
+            battle.p2.selected
+          );
+
+        /*
+         * 신청자
+         */
+        const s1 =
+          userSocket(
+            battle.p1.id
+          );
+
+        /*
+         * 상대방
+         */
+        const s2 =
+          userSocket(
+            battle.p2.id
+          );
+
+        /*
+         * 신청자에게 전송
+         */
+        if (s1) {
+          io.to(s1).emit(
+            'battle:decksReady',
             {
-              ok: true
+              battleId,
+              message:
+                '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
             }
           );
 
-      if (
-  battle.p1.selected &&
-  battle.p2.selected
-) {
-  battle.status =
-    'chooseActive';
+          io.to(s1).emit(
+            'battle:state',
+            {
+              ...battleStateFor(
+                battle,
+                battle.p1.id
+              )
+            }
+          );
+        }
 
-  battle.p1.deck =
-    shuffle(
-      battle.p1.selected
-    );
+        /*
+         * 상대방에게 전송
+         */
+        if (s2) {
+          io.to(s2).emit(
+            'battle:decksReady',
+            {
+              battleId,
+              message:
+                '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
+            }
+          );
 
-  battle.p2.deck =
-    shuffle(
-      battle.p2.selected
-    );
-
-  const s1 =
-    userSocket(
-      battle.p1.id
-    );
-
-  const s2 =
-    userSocket(
-      battle.p2.id
-    );
-
-  if (s1) {
-    io.to(s1).emit(
-      'battle:decksReady',
-      {
-        battleId,
-        message:
-          '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
+          io.to(s2).emit(
+            'battle:state',
+            {
+              ...battleStateFor(
+                battle,
+                battle.p2.id
+              )
+            }
+          );
+        }
       }
-    );
 
-    io.to(s1).emit(
-      'battle:state',
-      {
-        ...battleStateFor(
-          battle,
-          battle.p1.id
-        )
-      }
-    );
+    } catch (e) {
+      socket.emit(
+        'battle:error',
+        {
+          message:
+            e.message ||
+            '6장 선택 실패'
+        }
+      );
+    }
   }
+);
 
-  if (s2) {
-    io.to(s2).emit(
-      'battle:decksReady',
-      {
-        battleId,
-        message:
-          '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
-      }
-    );
-
-    io.to(s2).emit(
-      'battle:state',
-      {
-        ...battleStateFor(
-          battle,
-          battle.p2.id
-        )
-      }
-    );
-  }
-}
+/* ---------------------------------------------
+   DEPLOY ACTIVE
+--------------------------------------------- */
     /* ---------------------------------------------
        DEPLOY ACTIVE
     --------------------------------------------- */
