@@ -1458,15 +1458,13 @@ io.on(
             .toString(36)
             .slice(2, 8)}`;
 
-      const newBattle = {
+             const newBattle = {
           id: battleId,
 
           p1: {
             id: targetId,
-            username:
-              requester.username,
-            socketId:
-              requester.socketId,
+            username: requester.username,
+            socketId: requester.socketId,
             selected: null,
             deck: null,
             active: null,
@@ -1475,71 +1473,50 @@ io.on(
 
           p2: {
             id: meId,
-            username:
-              opponent.username,
-            socketId:
-              opponent.socketId,
+            username: opponent.username,
+            socketId: opponent.socketId,
             selected: null,
             deck: null,
             active: null,
             activeSlot: null
           },
 
-          status:
-            'selecting',
-
+          status: 'selecting',
           turn: null
         };
 
         battles.set(
           battleId,
-          battle
+          newBattle
         );
 
-       const s1 = userSocket(battle.p1.id);
-const s2 = userSocket(battle.p2.id);
+        /*
+         * 배틀 시작 알림
+         * 두 사람 모두 6장 선택 화면으로 이동
+         */
+        if (requester.socketId) {
+          io.to(
+            requester.socketId
+          ).emit(
+            'battle:started',
+            {
+              battleId,
+              opponent: opponent.username
+            }
+          );
+        }
 
-if (s1) {
-  io.to(s1).emit(
-    'battle:decksReady',
-    {
-      battleId,
-      message:
-        '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
-    }
-  );
-
-  io.to(s1).emit(
-    'battle:state',
-    {
-      ...battleStateFor(
-        battle,
-        battle.p1.id
-      )
-    }
-  );
-}
-
-if (s2) {
-  io.to(s2).emit(
-    'battle:decksReady',
-    {
-      battleId,
-      message:
-        '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
-    }
-  );
-
-  io.to(s2).emit(
-    'battle:state',
-    {
-      ...battleStateFor(
-        battle,
-        battle.p2.id
-      )
-    }
-  );
-}
+        if (opponent.socketId) {
+          io.to(
+            opponent.socketId
+          ).emit(
+            'battle:started',
+            {
+              battleId,
+              opponent: requester.username
+            }
+          );
+        }
    /* ---------------------------------------------
    SELECT SIX
 --------------------------------------------- */
