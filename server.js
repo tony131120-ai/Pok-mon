@@ -501,17 +501,65 @@ app.post('/api/login', async (req, res) => {
     user.username
   );
 
+  // 로그인한 유저를 온라인으로 기록
+  onlineUsers.set(Number(user.id), {
+    username: user.username,
+    lastSeen: Date.now()
+  });
+
   res.json({
     token: tokenFor(user),
     user
   });
 });
 
+
+/* =========================================================
+   ONLINE USERS
+========================================================= */
+
+app.post('/api/heartbeat', auth, async (req, res) => {
+  onlineUsers.set(Number(req.user.id), {
+    username: req.user.username,
+    lastSeen: Date.now()
+  });
+
+  res.json({
+    ok: true
+  });
+});
+
+
+app.get('/api/online-users', auth, async (req, res) => {
+  const now = Date.now();
+
+  // 60초 이상 신호가 없는 유저는 오프라인 처리
+  for (const [id, info] of onlineUsers.entries()) {
+    if (now - info.lastSeen > 60000) {
+      onlineUsers.delete(id);
+    }
+  }
+
+  res.json({
+    users: Array.from(onlineUsers.entries()).map(([id, info]) => ({
+      id,
+      username: info.username
+    }))
+  });
+});
+
+
 /* =========================================================
    ME
 ========================================================= */
 
 app.get('/api/me', auth, async (req, res) => {
+  // /api/me에 접속한 것도 온라인 상태로 갱신
+  onlineUsers.set(Number(req.user.id), {
+    username: req.user.username,
+    lastSeen: Date.now()
+  });
+
   await ensureAdminSpecialCard(
     Number(req.user.id),
     req.user.username
@@ -519,22 +567,22 @@ app.get('/api/me', auth, async (req, res) => {
 
   const inv = await pool.query(
     `
-    SELECT
-      id,
-      card_id,
-      card_name,
-      image,
-      rarity,
-      price,
-      category,
-      hp,
-      types,
-      attacks,
-      weaknesses,
-      resistances
-    FROM inventory
-    WHERE user_id=$1
-    ORDER BY id DESC
+    SELECT 
+      id, 
+      card_id, 
+      card_name, 
+      image, 
+      rarity, 
+      price, 
+      category, 
+      hp, 
+      types, 
+      attacks, 
+      weaknesses, 
+      resistances 
+    FROM inventory 
+    WHERE user_id=$1 
+    ORDER BY id DESC 
     `,
     [req.user.id]
   );
