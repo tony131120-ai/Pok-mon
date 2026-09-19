@@ -14,7 +14,6 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
 const app = express();
-const onlineUsers = new Map();
 const server = http.createServer(app);
 
 const io = new SocketServer(server, {
@@ -503,11 +502,14 @@ app.post('/api/login', async (req, res) => {
   );
 
   // 로그인한 유저를 온라인으로 기록
-  onlineUsers.set(Number(user.id), {
-    username: user.username,
-    lastSeen: Date.now()
-  });
+  const loggedInUserId = Number(user.id);
 
+const currentOnline = online.get(loggedInUserId);
+
+if (currentOnline) {
+  currentOnline.lastSeen = Date.now();
+  online.set(loggedInUserId, currentOnline);
+}
   res.json({
     token: tokenFor(user),
     user
@@ -520,16 +522,19 @@ app.post('/api/login', async (req, res) => {
 ========================================================= */
 
 app.post('/api/heartbeat', auth, async (req, res) => {
-  onlineUsers.set(Number(req.user.id), {
-    username: req.user.username,
-    lastSeen: Date.now()
-  });
+  const userId = Number(req.user.id);
+
+  const current = online.get(userId);
+
+  if (current) {
+    current.lastSeen = Date.now();
+    online.set(userId, current);
+  }
 
   res.json({
     ok: true
   });
 });
-
 
 app.get('/api/online-users', auth, async (req, res) => {
   const now = Date.now();
@@ -556,10 +561,7 @@ app.get('/api/online-users', auth, async (req, res) => {
 
 app.get('/api/me', auth, async (req, res) => {
   // /api/me에 접속한 것도 온라인 상태로 갱신
-  onlineUsers.set(Number(req.user.id), {
-    username: req.user.username,
-    lastSeen: Date.now()
-  });
+
 
   await ensureAdminSpecialCard(
     Number(req.user.id),
@@ -1455,17 +1457,19 @@ io.on(
             user.username
           );
 
-          online.set(
-            Number(user.id),
-            {
-              userId:
-                Number(user.id),
-              username:
-                user.username,
-              socketId:
-                socket.id
-            }
-          );
+         online.set(
+  Number(user.id),
+  {
+    userId:
+      Number(user.id),
+    username:
+      user.username,
+    socketId:
+      socket.id,
+    lastSeen:
+      Date.now()
+  }
+);
 
           socket.data.userId =
             Number(user.id);
