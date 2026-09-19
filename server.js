@@ -1607,46 +1607,75 @@ if (s2) {
             }
           );
 
-          if (
-            battle.p1.selected &&
-            battle.p2.selected
-          ) {
-            battle.status =
-              'chooseActive';
+      if (
+  battle.p1.selected &&
+  battle.p2.selected
+) {
+  battle.status =
+    'chooseActive';
 
-            battle.p1.deck =
-              shuffle(
-                battle.p1.selected
-              );
+  battle.p1.deck =
+    shuffle(
+      battle.p1.selected
+    );
 
-            battle.p2.deck =
-              shuffle(
-                battle.p2.selected
-              );
+  battle.p2.deck =
+    shuffle(
+      battle.p2.selected
+    );
 
-            battleBroadcast(
-              battle,
-              'battle:decksReady',
-              {
-                battleId,
-                message:
-                  '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
-              }
-            );
-          }
-        } catch (e) {
-          socket.emit(
-            'battle:error',
-            {
-              message:
-                e.message ||
-                '6장 선택 실패'
-            }
-          );
-        }
+  const s1 =
+    userSocket(
+      battle.p1.id
+    );
+
+  const s2 =
+    userSocket(
+      battle.p2.id
+    );
+
+  if (s1) {
+    io.to(s1).emit(
+      'battle:decksReady',
+      {
+        battleId,
+        message:
+          '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
       }
     );
 
+    io.to(s1).emit(
+      'battle:state',
+      {
+        ...battleStateFor(
+          battle,
+          battle.p1.id
+        )
+      }
+    );
+  }
+
+  if (s2) {
+    io.to(s2).emit(
+      'battle:decksReady',
+      {
+        battleId,
+        message:
+          '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
+      }
+    );
+
+    io.to(s2).emit(
+      'battle:state',
+      {
+        ...battleStateFor(
+          battle,
+          battle.p2.id
+        )
+      }
+    );
+  }
+}
     /* ---------------------------------------------
        DEPLOY ACTIVE
     --------------------------------------------- */
