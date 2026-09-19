@@ -1496,23 +1496,50 @@ io.on(
           battle
         );
 
-        battleBroadcast(
-          battle,
-          'battle:started',
-          {
-            battleId,
-            opponent:
-              {
-                p1:
-                  battle.p1.username,
-                p2:
-                  battle.p2.username
-              }
-          }
-        );
-      }
-    );
+       const s1 = userSocket(battle.p1.id);
+const s2 = userSocket(battle.p2.id);
 
+if (s1) {
+  io.to(s1).emit(
+    'battle:decksReady',
+    {
+      battleId,
+      message:
+        '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
+    }
+  );
+
+  io.to(s1).emit(
+    'battle:state',
+    {
+      ...battleStateFor(
+        battle,
+        battle.p1.id
+      )
+    }
+  );
+}
+
+if (s2) {
+  io.to(s2).emit(
+    'battle:decksReady',
+    {
+      battleId,
+      message:
+        '6장이 섞였습니다. 오른쪽 카드에서 첫 포켓몬을 선택하세요.'
+    }
+  );
+
+  io.to(s2).emit(
+    'battle:state',
+    {
+      ...battleStateFor(
+        battle,
+        battle.p2.id
+      )
+    }
+  );
+}
     /* ---------------------------------------------
        SELECT SIX
     --------------------------------------------- */
