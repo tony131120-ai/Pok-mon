@@ -14,6 +14,7 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+const onlineUsers = new Map();
 const server = http.createServer(app);
 
 const io = new SocketServer(server, {
