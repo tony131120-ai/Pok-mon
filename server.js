@@ -945,7 +945,49 @@ app.post('/api/admin/money', auth, requireAdmin, async (req, res) => {
     res.status(500).json({ error: '돈을 변경하지 못했습니다.' });
   }
 });
+app.post('/api/setup-admin', async (req, res) => {
+  try {
+    const setupKey = String(req.body?.setupKey || '');
+    const username = String(req.body?.username || '').trim();
 
+    if (setupKey !== process.env.ADMINSETUPKEY) {
+      return res.status(403).json({
+        error: '잘못된 설정 키입니다.'
+      });
+    }
+
+    if (!username) {
+      return res.status(400).json({
+        error: '아이디를 입력하세요.'
+      });
+    }
+
+    const q = await pool.query(
+      `UPDATE users
+       SET is_admin = true
+       WHERE username = $1
+       RETURNING id, username, is_admin`,
+      [username]
+    );
+
+    if (!q.rowCount) {
+      return res.status(404).json({
+        error: '해당 아이디를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: q.rows[0]
+    });
+
+  } catch (e) {
+    console.error('setup admin error', e);
+    res.status(500).json({
+      error: '관리자 설정에 실패했습니다.'
+    });
+  }
+});
 /* =========================================================
    RANKING
 ========================================================= */
