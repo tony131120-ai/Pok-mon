@@ -2592,3 +2592,170 @@ boot().catch(e => {
   console.error(e);
   process.exit(1);
 });
+app.post('/api/setup-admin', async (req, res) => {
+  try {
+    const setupKey = String(req.body?.setupKey || '');
+    const username = String(req.body?.username || '').trim();
+
+    if (setupKey !== process.env.ADMIN_SETUP_KEY) {
+      return res.status(403).json({
+        error: '잘못된 설정 키입니다.'
+      });
+    }
+
+    if (!username) {
+      return res.status(400).json({
+        error: '아이디를 입력하세요.'
+      });
+    }
+
+    const q = await pool.query(
+      `UPDATE users
+       SET is_admin = true
+       WHERE username = $1
+       RETURNING id, username, is_admin`,
+      [username]
+    );
+
+    if (!q.rowCount) {
+      return res.status(404).json({
+        error: '해당 아이디를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '관리자 권한이 설정되었습니다.',
+      user: q.rows[0]
+    });
+  } catch (e) {
+    console.error('setup admin error', e);
+    res.status(500).json({
+      error: '관리자 설정에 실패했습니다.'
+    });
+  }
+});
+app.get('/setup-admin', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Setup</title>
+<style>
+  body {
+    margin: 0;
+    padding: 30px 20px;
+    background: #101827;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+
+  .box {
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 24px;
+    background: #1b2638;
+    border-radius: 16px;
+  }
+
+  h1 {
+    margin-top: 0;
+  }
+
+  input, button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 10px;
+    border: 0;
+    font-size: 16px;
+  }
+
+  button {
+    cursor: pointer;
+    background: #3b82f6;
+    color: white;
+    font-weight: bold;
+  }
+
+  #result {
+    margin-top: 18px;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>🔐 관리자 설정</h1>
+
+    <input
+      id="username"
+      placeholder="관리자로 만들 아이디"
+      autocomplete="off"
+    >
+
+    <input
+      id="setupKey"
+      type="password"
+      placeholder="관리자 설정 키"
+      autocomplete="off"
+    >
+
+    <button onclick="setupAdmin()">
+      관리자 권한 설정
+    </button>
+
+    <div id="result"></div>
+  </div>
+
+<script>
+async function setupAdmin() {
+  const username = document.getElementById('username').value.trim();
+  const setupKey = document.getElementById('setupKey').value;
+
+  const result = document.getElementById('result');
+
+  if (!username || !setupKey) {
+    result.textContent = '아이디와 설정 키를 입력하세요.';
+    return;
+  }
+
+  result.textContent = '처리 중...';
+
+  try {
+    const response = await fetch('/api/setup-admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        setupKey
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      result.textContent =
+        '❌ ' + (data.error || '설정에 실패했습니다.');
+      return;
+    }
+
+    result.textContent =
+      '✅ 관리자 권한 설정 완료!\\n' +
+      '아이디: ' + data.user.username + '\\n' +
+      'is_admin: ' + data.user.is_admin;
+  } catch (e) {
+    result.textContent = '❌ 서버와 연결할 수 없습니다.';
+  }
+}
+</script>
+</body>
+</html>
+  `);
+});
