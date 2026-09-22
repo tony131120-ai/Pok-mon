@@ -2597,7 +2597,7 @@ app.post('/api/setup-admin', async (req, res) => {
     const setupKey = String(req.body?.setupKey || '');
     const username = String(req.body?.username || '').trim();
 
-    if (setupKey !== process.env.ADMIN_SETUP_KEY) {
+    if (setupKey !== process.env.ADMINSETUPKEY) {
       return res.status(403).json({
         error: '잘못된 설정 키입니다.'
       });
