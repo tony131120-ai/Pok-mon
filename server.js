@@ -988,6 +988,74 @@ app.post('/api/setup-admin', async (req, res) => {
     });
   }
 });
+app.post('/api/admin/set-admin', auth, requireAdmin, async (req, res) => {
+  try {
+    const ownerUsername = String(
+      process.env.OWNER_USERNAME || ''
+    ).trim();
+
+    // 최고 관리자만 관리자 권한을 변경할 수 있음
+    if (
+      !ownerUsername ||
+      req.user.username !== ownerUsername
+    ) {
+      return res.status(403).json({
+        error: '최고 관리자만 사용할 수 있습니다.'
+      });
+    }
+
+    const targetId = Number(req.body?.userId);
+    const makeAdmin = Boolean(req.body?.makeAdmin);
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({
+        error: '올바른 사용자를 선택하세요.'
+      });
+    }
+
+    const target = await pool.query(
+      `SELECT id, username, is_admin
+       FROM users
+       WHERE id = $1`,
+      [targetId]
+    );
+
+    if (!target.rowCount) {
+      return res.status(404).json({
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const targetUser = target.rows[0];
+
+    // 최고 관리자 자신은 변경 불가
+    if (targetUser.username === ownerUsername) {
+      return res.status(403).json({
+        error: '최고 관리자는 변경할 수 없습니다.'
+      });
+    }
+
+    const q = await pool.query(
+      `UPDATE users
+       SET is_admin = $1
+       WHERE id = $2
+       RETURNING id, username, cash, is_admin`,
+      [makeAdmin, targetId]
+    );
+
+    res.json({
+      success: true,
+      user: q.rows[0]
+    });
+
+  } catch (e) {
+    console.error('set admin error', e);
+
+    res.status(500).json({
+      error: '관리자 권한을 변경하지 못했습니다.'
+    });
+  }
+});
 /* =========================================================
    RANKING
 ========================================================= */
