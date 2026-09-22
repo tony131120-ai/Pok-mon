@@ -1173,7 +1173,11 @@ async function start() {
     inventory =
       d.inventory ||
       [];
-
+if (me && me.is_admin === true) {
+  $('#adminTab').classList.remove('hidden');
+} else {
+  $('#adminTab').classList.add('hidden');
+}
     const p =
       await api(
         '/api/packs'
