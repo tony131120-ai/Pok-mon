@@ -1265,41 +1265,7 @@ function refresh() {
 function tab(
   id,
   button
-) 
-
-  if (!confirm('변정환의 관리자 권한을 해제할까요?')) {
-    return;
-  }
-
-  try {
-    const data = await api(
-      '/api/admin/set-admin',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId,
-          makeAdmin: false
-        })
-      }
-    );
-
-    alert(
-      '✅ 관리자 권한이 해제되었습니다.'
-    );
-
-    renderAdmin();
-
-  } catch (e) {
-    alert(
-      '❌ 관리자 권한 해제 실패\n' +
-      (e.message || '')
-    );
-  }
-}
-{
+) {
   document
     .querySelectorAll(
       '#main>section'
@@ -1330,7 +1296,10 @@ function tab(
       .add('active');
   }
 
-  if (id === 'admin' && me?.is_admin) {
+  if (
+    id === 'admin' &&
+    me?.is_admin
+  ) {
     renderAdmin();
   }
 }
