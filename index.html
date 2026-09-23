@@ -1263,68 +1263,7 @@ function tab(
   id,
   button
 ) 
-async function renderAdmin() {
-  const box = $('#adminUsers');
 
-  if (!box) return;
-
-  box.textContent = '사용자 목록을 불러오는 중...';
-
-  try {
-    const data = await api('/api/admin/users');
-
-    const users = data.users || [];
-
-    if (!users.length) {
-      box.textContent = '관리할 사용자가 없습니다.';
-      return;
-    }
-
-    box.innerHTML = users.map(user => `
-      <div
-        style="
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:10px;
-          padding:12px;
-          margin-top:10px;
-          background:rgba(255,255,255,.06);
-          border-radius:12px;
-        "
-      >
-        <div>
-          <b>${user.username}</b>
-          <div style="opacity:.7;font-size:13px;">
-            ${user.is_admin ? '🟢 관리자' : '⚪ 일반 사용자'}
-          </div>
-        </div>
-
-        ${
-          user.username === '변정환'
-            ? `
-              <button
-                class="btn"
-                onclick="removeAdmin(${user.id})"
-              >
-                🔴 관리자 해제
-              </button>
-            `
-            : ''
-        }
-      </div>
-    `).join('');
-
-  } catch (e) {
-    console.error(e);
-
-    box.textContent =
-      '❌ 사용자 목록을 불러오지 못했습니다.';
-  }
-}
-
-
-async function removeAdmin(userId) {
   if (!confirm('변정환의 관리자 권한을 해제할까요?')) {
     return;
   }
