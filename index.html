@@ -3267,6 +3267,19 @@ function showBattleResult(
     data.winner ===
     me?.username;
 
+  const surrendered =
+    data.surrendered === true;
+
+  const reward =
+    Number(
+      data.reward || 0
+    );
+
+  const rewardPercent =
+    Number(
+      data.rewardPercent || 0
+    );
+
   const overlay =
     document.createElement(
       'div'
@@ -3275,16 +3288,22 @@ function showBattleResult(
   overlay.className =
     'battle-overlay';
 
+  let title;
+
+  if (win) {
+    title = '🏆 승리!';
+  } else if (surrendered) {
+    title = '🏳️ 항복 패배';
+  } else {
+    title = '💥 패배';
+  }
+
   overlay.innerHTML =
     `
       <div class="battle-message">
 
         <div class="big">
-          ${
-            win
-              ? '🏆 승리!'
-              : '💥 패배'
-          }
+          ${title}
         </div>
 
         <p>
@@ -3294,6 +3313,45 @@ function showBattleResult(
             )
           }님이 승리했습니다.
         </p>
+
+        ${
+          surrendered
+            ? `
+              <p class="muted">
+                ${esc(
+                  data.loser
+                )}님이 항복했습니다.
+              </p>
+            `
+            : ''
+        }
+
+        ${
+          win &&
+          reward > 0
+            ? `
+              <p>
+                💰 상대의 돈
+                ${rewardPercent}% 획득!
+              </p>
+
+              <p class="big">
+                +${money(reward)}
+              </p>
+            `
+            : ''
+        }
+
+        ${
+          win &&
+          reward === 0
+            ? `
+              <p class="muted">
+                💰 획득한 보상이 없습니다.
+              </p>
+            `
+            : ''
+        }
 
         ${
           data.reason
@@ -3309,7 +3367,12 @@ function showBattleResult(
 
         <button
           class="btn"
-          onclick="this.parentElement.parentElement.remove();leaveBattle()"
+          onclick="
+            this.parentElement
+              .parentElement
+              .remove();
+            leaveBattle();
+          "
         >
           확인
         </button>
