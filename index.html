@@ -984,6 +984,32 @@ button{
 ></div>
 
 <script>
+function surrenderBattle() {
+
+  if (
+    !battle ||
+    !battle.id
+  ) {
+    return;
+  }
+
+  const ok =
+    confirm(
+      '정말 항복하시겠습니까?\n\n항복하면 즉시 패배 처리됩니다.'
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  socket.emit(
+    'battle:surrender',
+    {
+      battleId:
+        battle.id
+    }
+  );
+}
 /* =========================================================
    GLOBAL
 ========================================================= */
