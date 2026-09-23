@@ -2557,12 +2557,7 @@ const loserMoney =
 
 // 3~10% 랜덤
 
-const reward =
-  Math.floor(
-    loserMoney *
-    rewardPercent /
-    100
-  );
+
 
 // 돈 이동
 if (reward > 0) {
