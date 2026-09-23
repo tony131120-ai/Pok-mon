@@ -2680,15 +2680,7 @@ return;
                 defender.username
             }
           );
-        } catch (e) {
-          socket.emit(
-            'battle:error',
-            {
-              message:
-                e.message
-            }
-          );
-        }
+        } 
       }
     );
     socket.on(
