@@ -2538,29 +2538,90 @@ socket.on(
     );
   }
 
-  battleBroadcast(
-    battle,
-    'battle:finished',
-    {
-      winner:
-        attacker.username,
-      loser:
-        defender.username,
+battle.status =
+  'finished';
 
+// 패자의 현재 돈 가져오기
+const loserMoneyQ =
+  await pool.query(
+    `SELECT cash
+     FROM users
+     WHERE id = $1`,
+    [defender.id]
+  );
+
+const loserMoney =
+  Number(
+    loserMoneyQ.rows[0]?.cash || 0
+  );
+
+// 3~10% 랜덤
+const rewardPercent =
+  Math.floor(
+    Math.random() * 8
+  ) + 3;
+
+const reward =
+  Math.floor(
+    loserMoney *
+    rewardPercent /
+    100
+  );
+
+// 돈 이동
+if (reward > 0) {
+
+  await pool.query(
+    `UPDATE users
+     SET cash =
+       GREATEST(0, cash - $1)
+     WHERE id = $2`,
+    [
       reward,
-      rewardPercent
-    }
+      defender.id
+    ]
   );
 
-  // 랭킹에 변경된 돈 즉시 반영
-  await broadcastRanking();
-
-  battles.delete(
-    battle.id
+  await pool.query(
+    `UPDATE users
+     SET cash =
+       cash + $1
+     WHERE id = $2`,
+    [
+      reward,
+      attacker.id
+    ]
   );
-
-  return;
 }
+
+battleBroadcast(
+  battle,
+  'battle:finished',
+  {
+    winner:
+      attacker.username,
+
+    loser:
+      defender.username,
+
+    reward:
+      reward,
+
+    rewardPercent:
+      rewardPercent,
+
+    surrendered:
+      false
+  }
+);
+
+await broadcastRanking();
+
+battles.delete(
+  battle.id
+);
+
+return;
 
             battle.status =
               'chooseActive';
@@ -2639,6 +2700,156 @@ socket.on(
         }
       }
     );
+    socket.on(
+  'battle:surrender',
+  async ({
+    battleId
+  }) => {
+
+    try {
+
+      const battle =
+        battles.get(
+          battleId
+        );
+
+      if (!battle) {
+        throw new Error(
+          '배틀을 찾을 수 없습니다.'
+        );
+      }
+
+      const surrenderId =
+        Number(
+          socket.data.userId
+        );
+
+      const surrenderPlayer =
+        playerOf(
+          battle,
+          surrenderId
+        );
+
+      const winner =
+        otherPlayer(
+          battle,
+          surrenderId
+        );
+
+      if (
+        !surrenderPlayer ||
+        !winner
+      ) {
+        throw new Error(
+          '배틀 참가자가 아닙니다.'
+        );
+      }
+
+      if (
+        battle.status ===
+        'finished'
+      ) {
+        throw new Error(
+          '이미 종료된 배틀입니다.'
+        );
+      }
+
+      battle.status =
+        'finished';
+
+      // 항복한 플레이어의 현재 돈
+      const moneyQ =
+        await pool.query(
+          `SELECT cash
+           FROM users
+           WHERE id = $1`,
+          [surrenderPlayer.id]
+        );
+
+      const loserMoney =
+        Number(
+          moneyQ.rows[0]?.cash || 0
+        );
+
+      // 3~10% 랜덤
+      const rewardPercent =
+        Math.floor(
+          Math.random() * 8
+        ) + 3;
+
+      const reward =
+        Math.floor(
+          loserMoney *
+          rewardPercent /
+          100
+        );
+
+      if (
+        reward > 0
+      ) {
+
+        await pool.query(
+          `UPDATE users
+           SET cash =
+             GREATEST(0, cash - $1)
+           WHERE id = $2`,
+          [
+            reward,
+            surrenderPlayer.id
+          ]
+        );
+
+        await pool.query(
+          `UPDATE users
+           SET cash =
+             cash + $1
+           WHERE id = $2`,
+          [
+            reward,
+            winner.id
+          ]
+        );
+      }
+
+      battleBroadcast(
+        battle,
+        'battle:finished',
+        {
+          winner:
+            winner.username,
+
+          loser:
+            surrenderPlayer.username,
+
+          reward:
+            reward,
+
+          rewardPercent:
+            rewardPercent,
+
+          surrendered:
+            true
+        }
+      );
+
+      await broadcastRanking();
+
+      battles.delete(
+        battle.id
+      );
+
+    } catch (e) {
+
+      socket.emit(
+        'battle:error',
+        {
+          message:
+            e.message
+        }
+      );
+    }
+  }
+);
 
     /* ---------------------------------------------
        REPLACE ACTIVE AFTER KO
