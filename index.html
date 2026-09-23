@@ -2036,7 +2036,36 @@ function renderOnline() {
    SOCKET
 ========================================================= */
 
-function connect() {
+function connect() function surrenderBattle() {
+
+  if (
+    !battle ||
+    !battle.id
+  ) {
+    toast(
+      '현재 진행 중인 배틀이 없습니다.'
+    );
+    return;
+  }
+
+  const ok =
+    confirm(
+      '정말 항복하시겠습니까?\n\n항복하면 즉시 패배 처리됩니다.'
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  socket.emit(
+    'battle:surrender',
+    {
+      battleId:
+        battle.id
+    }
+  );
+} {
+
 
   if (socket) {
     socket.disconnect();
@@ -2273,18 +2302,46 @@ function connect() {
     }
   );
 
-   socket.on(
-    'battle:surrendered',
+    socket.on(
+    'battle:finished',
     data => {
 
       showBattleResult(
         data
       );
 
+      if (
+        data.reward > 0
+      ) {
+        toast(
+          `💰 ${data.rewardPercent}% 보상! ${money(data.reward)} 획득`
+        );
+      }
+
       battle = null;
       battleState = null;
+
+      // 내 돈 즉시 갱신
+      api('/api/me')
+        .then(
+          data => {
+            me =
+              data.user;
+
+            inventory =
+              data.inventory ||
+              [];
+
+            refresh();
+          }
+        )
+        .catch(
+          () => {}
+        );
     }
   );
+
+}
   
 /* =========================================================
    BATTLE REQUEST
