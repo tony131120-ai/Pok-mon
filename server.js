@@ -2556,10 +2556,6 @@ const loserMoney =
   );
 
 // 3~10% 랜덤
-const rewardPercent =
-  Math.floor(
-    Math.random() * 8
-  ) + 3;
 
 const reward =
   Math.floor(
