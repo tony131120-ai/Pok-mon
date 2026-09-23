@@ -2197,12 +2197,12 @@ socket.on(
        ATTACK
     --------------------------------------------- */
 
-    socket.on(
-      'battle:attack',
-      ({
-        battleId,
-        attackIndex
-      }) => {
+   socket.on(
+  'battle:attack',
+  async ({
+    battleId,
+    attackIndex
+  }) => {
         try {
           const battle =
             battles.get(
