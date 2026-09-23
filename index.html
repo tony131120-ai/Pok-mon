@@ -2247,8 +2247,8 @@ function connect() {
     }
   );
 
-  socket.on(
-    'battle:finished',
+   socket.on(
+    'battle:surrendered',
     data => {
 
       showBattleResult(
@@ -2259,8 +2259,7 @@ function connect() {
       battleState = null;
     }
   );
-}
-
+  
 /* =========================================================
    BATTLE REQUEST
 ========================================================= */
