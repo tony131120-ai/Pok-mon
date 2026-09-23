@@ -2208,7 +2208,145 @@ socket.on(
             battles.get(
               battleId
             );
+socket.on(
+  'battle:surrender',
+  async ({
+    battleId
+  }) => {
+    try {
+      const battle =
+        battles.get(
+          battleId
+        );
 
+      if (!battle) {
+        throw new Error(
+          '배틀을 찾을 수 없습니다.'
+        );
+      }
+
+      if (
+        battle.status ===
+        'finished'
+      ) {
+        throw new Error(
+          '이미 끝난 배틀입니다.'
+        );
+      }
+
+      const surrenderId =
+        Number(
+          socket.data.userId
+        );
+
+      const surrenderPlayer =
+        playerOf(
+          battle,
+          surrenderId
+        );
+
+      const winner =
+        otherPlayer(
+          battle,
+          surrenderId
+        );
+
+      if (
+        !surrenderPlayer ||
+        !winner
+      ) {
+        throw new Error(
+          '배틀 참가자가 아닙니다.'
+        );
+      }
+
+      battle.status =
+        'finished';
+
+      // 패자의 현재 돈 확인
+      const loserCashQ =
+        await pool.query(
+          `SELECT cash
+           FROM users
+           WHERE id = $1`,
+          [surrenderPlayer.id]
+        );
+
+      const loserCash =
+        Number(
+          loserCashQ.rows[0]?.cash || 0
+        );
+
+      // 3~10% 랜덤
+      const rewardPercent =
+        Math.floor(
+          Math.random() * 8
+        ) + 3;
+
+      const reward =
+        Math.floor(
+          loserCash *
+          rewardPercent /
+          100
+        );
+
+      if (reward > 0) {
+        await pool.query(
+          `UPDATE users
+           SET cash = GREATEST(0, cash - $1)
+           WHERE id = $2`,
+          [
+            reward,
+            surrenderPlayer.id
+          ]
+        );
+
+        await pool.query(
+          `UPDATE users
+           SET cash = cash + $1
+           WHERE id = $2`,
+          [
+            reward,
+            winner.id
+          ]
+        );
+      }
+
+      battleBroadcast(
+        battle,
+        'battle:finished',
+        {
+          winner:
+            winner.username,
+
+          loser:
+            surrenderPlayer.username,
+
+          surrendered:
+            true,
+
+          reward,
+          rewardPercent
+        }
+      );
+
+      await broadcastRanking();
+
+      battles.delete(
+        battle.id
+      );
+
+    } catch (e) {
+      socket.emit(
+        'battle:error',
+        {
+          message:
+            e.message
+        }
+      );
+    }
+  }
+);
           if (!battle) {
             throw new Error(
               '배틀 없음'
@@ -2345,30 +2483,84 @@ socket.on(
             defender.activeSlot =
               null;
 
-            if (
-              defender.deck.length ===
-              0
-            ) {
-              battle.status =
-                'finished';
+           if (
+  defender.deck.length ===
+  0
+) {
+  battle.status =
+    'finished';
 
-              battleBroadcast(
-                battle,
-                'battle:finished',
-                {
-                  winner:
-                    attacker.username,
-                  loser:
-                    defender.username
-                }
-              );
+  // 승리 보상: 패자의 현재 돈 중 3~10%를 랜덤으로 가져감
+  const loserCashQ =
+    await pool.query(
+      `SELECT cash
+       FROM users
+       WHERE id = $1`,
+      [defender.id]
+    );
 
-              battles.delete(
-                battle.id
-              );
+  const loserCash =
+    Number(
+      loserCashQ.rows[0]?.cash || 0
+    );
 
-              return;
-            }
+  const rewardPercent =
+    Math.floor(
+      Math.random() * 8
+    ) + 3;
+
+  const reward =
+    Math.floor(
+      loserCash *
+      rewardPercent /
+      100
+    );
+
+  if (reward > 0) {
+    await pool.query(
+      `UPDATE users
+       SET cash = GREATEST(0, cash - $1)
+       WHERE id = $2`,
+      [
+        reward,
+        defender.id
+      ]
+    );
+
+    await pool.query(
+      `UPDATE users
+       SET cash = cash + $1
+       WHERE id = $2`,
+      [
+        reward,
+        attacker.id
+      ]
+    );
+  }
+
+  battleBroadcast(
+    battle,
+    'battle:finished',
+    {
+      winner:
+        attacker.username,
+      loser:
+        defender.username,
+
+      reward,
+      rewardPercent
+    }
+  );
+
+  // 랭킹에 변경된 돈 즉시 반영
+  await broadcastRanking();
+
+  battles.delete(
+    battle.id
+  );
+
+  return;
+}
 
             battle.status =
               'chooseActive';
