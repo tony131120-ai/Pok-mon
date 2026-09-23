@@ -1136,13 +1136,9 @@ async function signup() {
   }
 }
 
-async function login()  {
+async function login() {
   alert('로그인 함수 실행됨');
 
-  try {
-    const d =
-      await api(
-        '/api/login',
   try {
     const d =
       await api(
@@ -1177,7 +1173,6 @@ async function login()  {
     toast(e.message);
   }
 }
-
 async function start() {
   try {
     const d =
