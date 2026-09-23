@@ -2541,7 +2541,7 @@ socket.on(
 battle.status =
   'finished';
 
-/
+
 }
 
 battleBroadcast(
