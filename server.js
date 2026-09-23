@@ -2541,48 +2541,7 @@ socket.on(
 battle.status =
   'finished';
 
-// 패자의 현재 돈 가져오기
-const loserMoneyQ =
-  await pool.query(
-    `SELECT cash
-     FROM users
-     WHERE id = $1`,
-    [defender.id]
-  );
-
-const loserMoney =
-  Number(
-    loserMoneyQ.rows[0]?.cash || 0
-  );
-
-// 3~10% 랜덤
-
-
-
-// 돈 이동
-if (reward > 0) {
-
-  await pool.query(
-    `UPDATE users
-     SET cash =
-       GREATEST(0, cash - $1)
-     WHERE id = $2`,
-    [
-      reward,
-      defender.id
-    ]
-  );
-
-  await pool.query(
-    `UPDATE users
-     SET cash =
-       cash + $1
-     WHERE id = $2`,
-    [
-      reward,
-      attacker.id
-    ]
-  );
+/
 }
 
 battleBroadcast(
