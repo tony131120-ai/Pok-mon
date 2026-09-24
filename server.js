@@ -427,9 +427,11 @@ app.get('/api/packs', (req, res) => {
 
 app.get('/api/ranking', async (req, res) => {
   try {
-    res.json(await ranking());
+ res.json(await ranking());
   } catch {
-    res.status(500).json({ error: '랭킹을 불러오지 못했습니다.' });
+    res.status(500).json({
+      error: '랭킹을 불러오지 못했습니다.'
+    });
   }
 });
 
@@ -444,33 +446,16 @@ app.get('/api/cards', async (req, res) => {
       }))
     );
   } catch (error) {
-    console.error('GET /api/cards ERROR:', error);
+    console.error(
+      'GET /api/cards ERROR:',
+      error
+    );
 
     res.status(500).json({
       error: '카드를 불러오지 못했습니다.'
     });
   }
 });
-
-
-
-const cards = [];
-
-for (let i = 0; i < 8; i++) {
-  cards.push(
-    pickCard(pool)
-  );
-}
-
-
-
-  catch {
-    res.status(502).json({
-      error: '카드 데이터를 불러오지 못했습니다.'
-    });
-  }
-});
-
 /* =========================================================
    SIGNUP
 ========================================================= */
