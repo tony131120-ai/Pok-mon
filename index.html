@@ -8,6 +8,28 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <style>
+  .mega-reveal {
+  opacity: .25;
+  filter:
+    blur(18px)
+    saturate(.8);
+  transform:
+    scale(.94);
+  transition:
+    opacity 1.1s ease,
+    filter 1.1s ease,
+    transform 1.1s ease;
+}
+
+/* 카드가 화면에 들어온 뒤 선명해짐 */
+.mega-reveal.mega-clear {
+  opacity: 1;
+  filter:
+    blur(0)
+    saturate(1.25);
+  transform:
+    scale(1.04);
+}
 *{box-sizing:border-box}
 
 body{
@@ -1749,47 +1771,7 @@ async function openPack(id) {
       .classList
       .remove('hidden');
 
-    renderCard();
-
-  } catch (e) {
-
-    toast(
-      e.message
-    );
-  }
-}
-
-function imageCandidates(c) {
-
-  const b =
-    String(
-      c?.image || ''
-    ).replace(
-      /\/$/,
-      ''
-    );
-
-  if (!b) {
-    return [];
-  }
-
-  if (
-    /\.(webp|png|jpg|jpeg)$/i
-      .test(b)
-  ) {
-    return [b];
-  }
-
-  return [
-    `${b}/high.webp`,
-    `${b}/high.png`,
-    `${b}/low.webp`,
-    `${b}/low.png`,
-    `${b}/high.jpg`
-  ];
-}
-
-function renderCard() {
+  function renderCard() {
 
   const stage =
     $('#stage');
@@ -1815,6 +1797,16 @@ function renderCard() {
 
   image.className =
     'reveal';
+
+  /*
+    메가레쿠쟈 카드일 때만
+    흐림 → 선명 이펙트 적용
+  */
+  if (c.megaRayquaza) {
+    image.classList.add(
+      'mega-reveal'
+    );
+  }
 
   image.alt =
     c.name ||
@@ -1864,8 +1856,16 @@ function renderCard() {
   stage.appendChild(
     image
   );
+    if (c.megaRayquaza) {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      image.classList.add(
+        'mega-clear'
+      );
+    }, 100);
+  });
+}
 
-  
   $('#prog')
     .style.width =
     (
@@ -1914,121 +1914,6 @@ function renderCard() {
       }
     };
 }
-
-async function nextCard() {
-
-  if (busy)
-    return;
-
-  busy = true;
-
-  const image =
-    $('#stage .reveal');
-
-  if (!image) {
-    busy = false;
-    return;
-  }
-
-  image.style.transition =
-    'transform .42s ease,opacity .42s';
-
-  image.style.transform =
-    'translateY(-120vh) rotate(-10deg)';
-
-  image.style.opacity =
-    '0';
-
-  setTimeout(
-    async () => {
-
-      idx++;
-
-      if (
-        idx <
-        opening.length
-      ) {
-        busy = false;
-        renderCard();
-        return;
-      }
-
-      try {
-
-        for (
-          const card
-          of opening
-        ) {
-
-          try {
-
-            const d =
-              await api(
-                '/api/claim',
-                {
-                  method:
-                    'POST',
-                  body:
-                    JSON.stringify({
-                      card
-                    })
-                }
-              );
-
-            me =
-              d.user;
-
-          } catch (e) {
-            console.error(
-              e
-            );
-          }
-        }
-
-        const d =
-          await api(
-            '/api/me'
-          );
-
-        me =
-          d.user;
-
-        inventory =
-          d.inventory ||
-          [];
-
-        refresh();
-
-        $('#hint')
-          .textContent =
-          '🎉 모든 카드 공개 완료';
-
-        $('#prog')
-          .style.width =
-          '100%';
-
-      } catch (e) {
-        console.error(
-          e
-        );
-      }
-
-      busy = false;
-
-    },
-    430
-  );
-}
-
-function finish() {
-
-  $('#modal')
-    .classList
-    .add('hidden');
-
-  refresh();
-}
-
 /* =========================================================
    INVENTORY
 ========================================================= */
