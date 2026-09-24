@@ -463,28 +463,7 @@ for (let i = 0; i < 8; i++) {
 }
 
 
-/* 여기부터 메가레쿠쟈 확률 코드 */
-const MEGA_RAYQUAZA_DROP_RATE = 100;
 
-const isRayquazaEvolving =
-  String(pack.name || '').trim().toLowerCase() ===
-  'rayquaza evolving';
-
-if (isRayquazaEvolving) {
-  const megaCards = cards.filter(
-    card => card && card.megaRayquaza === true
-  );
-
-  if (
-    megaCards.length > 0 &&
-    Math.random() * 100 < MEGA_RAYQUAZA_DROP_RATE
-  ) {
-    cards[cards.length - 1] =
-      megaCards[
-        Math.floor(Math.random() * megaCards.length)
-      ];
-  }
-}
   catch {
     res.status(502).json({
       error: '카드 데이터를 불러오지 못했습니다.'
