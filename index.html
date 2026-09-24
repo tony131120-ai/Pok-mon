@@ -730,33 +730,62 @@ button{
   font-weight:900;
 }
 
-.mega-pull-overlay{
-  position:fixed;
-  inset:0;
-  z-index:85;
-  display:grid;
-  place-items:center;
-  background:radial-gradient(circle,#1b2b55cc,#000f);
-  pointer-events:none;
-  animation:megaOverlayIn .25s ease forwards;
+.mega-pull-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+
+  display: grid;
+  place-items: center;
+
+  background:
+    radial-gradient(
+      circle,
+      #1b2b55cc,
+      #000f
+    );
+
+  pointer-events: none;
+
+  animation:
+    megaOverlayIn .25s ease forwards;
 }
 
-.mega-pull-card{
-  width:min(330px,72vw);
-  max-height:70vh;
-  object-fit:contain;
-  border-radius:18px;
-  opacity:.25;
-  filter:blur(18px) saturate(.8);
-  transform:scale(.94);
-  box-shadow:0 0 90px #5da7ff88;
-  transition:filter 1.1s ease,opacity 1.1s ease,transform 1.1s ease;
+.mega-pull-card {
+  width: min(330px, 72vw);
+  max-height: 70vh;
+
+  object-fit: contain;
+
+  border-radius: 18px;
+
+  /* 처음 상태: 흐림 */
+  opacity: .25;
+
+  filter:
+    blur(18px)
+    saturate(.8);
+
+  transform: scale(.94);
+
+  box-shadow:
+    0 0 90px #5da7ff88;
+
+  transition:
+    filter 1.1s ease,
+    opacity 1.1s ease,
+    transform 1.1s ease;
 }
 
-.mega-pull-card.clear{
-  opacity:1;
-  filter:blur(0) saturate(1.25);
-  transform:scale(1.04);
+/* 0.7초 후 선명해짐 */
+.mega-pull-card.clear {
+  opacity: 1;
+
+  filter:
+    blur(0)
+    saturate(1.25);
+
+  transform: scale(1.04);
 }
 
 .mega-pull-card.fade{
@@ -3428,34 +3457,64 @@ function attack(
 }
 
 function playMegaPullAnimation(card) {
-  const old = document.querySelector('.mega-pull-overlay');
-  if (old) old.remove();
+  const old =
+    document.querySelector('.mega-pull-overlay');
 
-  const overlay = document.createElement('div');
-  overlay.className = 'mega-pull-overlay';
+  if (old) {
+    old.remove();
+  }
 
-  const image = document.createElement('img');
-  image.className = 'mega-pull-card';
-  image.src = card?.image || '';
-  image.alt = '메가레쿠쟈 ex';
+  const overlay =
+    document.createElement('div');
 
-  const logo = document.createElement('div');
-  logo.className = 'mega-logo';
-  logo.textContent = 'MEGA EVOLUTION';
+  overlay.className =
+    'mega-pull-overlay';
 
-  const name = document.createElement('div');
-  name.className = 'mega-pull-name';
-  name.textContent = '🐉 메가레쿠쟈 ex · 스톰에메랄다';
+  const image =
+    document.createElement('img');
+
+  image.className =
+    'mega-pull-card';
+
+  image.src =
+    card?.image || '';
+
+  image.alt =
+    '메가레쿠쟈 ex';
+
+  const logo =
+    document.createElement('div');
+
+  logo.className =
+    'mega-logo';
+
+  logo.textContent =
+    'MEGA EVOLUTION';
+
+  const name =
+    document.createElement('div');
+
+  name.className =
+    'mega-pull-name';
+
+  name.textContent =
+    '🐉 메가레쿠쟈 ex · 스톰에메랄다';
 
   overlay.appendChild(image);
   overlay.appendChild(logo);
   overlay.appendChild(name);
+
   document.body.appendChild(overlay);
 
-  setTimeout(() => image.classList.add('clear'), 700);
-  setTimeout(() => image.classList.remove('clear'), 2200);
-  setTimeout(() => image.classList.add('fade'), 2700);
-  setTimeout(() => overlay.remove(), 3700);
+  /* 처음에는 흐리게 */
+  setTimeout(() => {
+    image.classList.add('clear');
+  }, 700);
+
+  /*
+    여기부터는 삭제하지 않음.
+    선명해진 카드가 그대로 화면에 남음.
+  */
 }
 
 /* =========================================================
