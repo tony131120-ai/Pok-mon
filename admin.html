@@ -209,38 +209,132 @@
 </div>
 
 <script>
-  let token = '';
+  let panelToken = '';
 
   function setStatus(text) {
-    const status = document.getElementById('status');
+    const status =
+      document.getElementById('status');
 
     if (status) {
       status.textContent = text;
     }
   }
 
+  async function loginAdmin() {
+
+    const input =
+      document.getElementById('adminToken');
+
+    const loginStatus =
+      document.getElementById('loginStatus');
+
+    const value =
+      String(input.value || '').trim();
+
+    if (!value) {
+      loginStatus.textContent =
+        '관리자 토큰을 입력하세요.';
+      return;
+    }
+
+    loginStatus.textContent =
+      '관리자 인증 중...';
+
+    try {
+
+      const response =
+        await fetch(
+          '/api/admin/panel-login',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body: JSON.stringify({
+              token: value
+            })
+          }
+        );
+
+      const data =
+        await response.json()
+          .catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          '관리자 인증에 실패했습니다.'
+        );
+      }
+
+      panelToken = value;
+
+      document.getElementById(
+        'loginBox'
+      ).style.display = 'none';
+
+      document.getElementById(
+        'adminPanel'
+      ).style.display = 'block';
+
+      setStatus(
+        '👑 최고 관리자 인증 완료'
+      );
+
+      await loadUsers();
+
+    } catch (error) {
+
+      console.error(
+        'admin login error:',
+        error
+      );
+
+      loginStatus.textContent =
+        error.message ||
+        '관리자 인증에 실패했습니다.';
+    }
+  }
+
+
   async function api(url, options = {}) {
+
     const headers = {
       ...(options.headers || {}),
-      Authorization: 'Bearer ' + token,
-      'Content-Type': 'application/json'
+
+      'Content-Type':
+        'application/json',
+
+      'X-Admin-Panel-Token':
+        panelToken
     };
 
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
+    const response =
+      await fetch(
+        url,
+        {
+          ...options,
+          headers
+        }
+      );
 
-    const data = await response.json().catch(() => ({}));
+    const data =
+      await response.json()
+        .catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(
-        data.error || '요청에 실패했습니다.'
+        data.error ||
+        '요청에 실패했습니다.'
       );
     }
 
     return data;
   }
+
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -251,39 +345,13 @@
       .replaceAll("'", '&#039;');
   }
 
+
   async function loadUsers() {
+
     try {
-      token =
-        localStorage.getItem('pp_token') || '';
-
-      if (!token) {
-        setStatus(
-          '로그인이 필요합니다. 먼저 메인 사이트에 로그인하세요.'
-        );
-
-        document.getElementById('users').innerHTML =
-          '<div class="empty">로그인 후 관리자 페이지를 이용할 수 있습니다.</div>';
-
-        return;
-      }
 
       const data =
         await api('/api/admin/users');
-
-      if (data.canManageAdmins !== true) {
-        setStatus(
-          '최고 관리자만 이 페이지를 사용할 수 있습니다.'
-        );
-
-        document.getElementById('users').innerHTML =
-          '<div class="empty">최고 관리자 권한이 없습니다.</div>';
-
-        return;
-      }
-
-      setStatus(
-        '👑 최고 관리자 인증 완료'
-      );
 
       const users =
         Array.isArray(data.users)
@@ -293,141 +361,132 @@
       const box =
         document.getElementById('users');
 
-      if (users.length === 0) {
+      if (!users.length) {
+
         box.innerHTML =
-          '<div class="empty">관리할 사용자가 없습니다.</div>';
+          '<div class="empty">' +
+          '관리할 사용자가 없습니다.' +
+          '</div>';
 
         return;
       }
 
-      box.innerHTML = users.map(function (u) {
+      box.innerHTML =
+        users.map(function (u) {
 
-        const isAdmin =
-          Boolean(u.is_admin);
+          const isAdmin =
+            Boolean(u.is_admin);
 
-        const username =
-          escapeHtml(u.username);
+          const username =
+            escapeHtml(u.username);
 
-        const id =
-          Number(u.id);
+          const id =
+            Number(u.id);
 
-        const cash =
-          Number(u.cash || 0);
+          const cash =
+            Number(u.cash || 0);
 
-        let permissionHtml;
+          const permissionHtml =
+            isAdmin
+              ? '<span class="admin-badge">👑 관리자</span>'
+              : '<span class="normal-badge">일반 사용자</span>';
 
-        if (isAdmin) {
-          permissionHtml =
-            '<span class="admin-badge">👑 관리자</span>';
-        } else {
-          permissionHtml =
-            '<span class="normal-badge">일반 사용자</span>';
-        }
+          const adminButton =
+            isAdmin
 
-        let adminButton = '';
-
-        if (isAdmin) {
-          adminButton =
-            '<button class="remove" ' +
-            'onclick="setAdmin(' +
-            id +
-            ', false)">' +
-            '🔴 관리자 해제' +
-            '</button>';
-        } else {
-          adminButton =
-            '<button class="admin" ' +
-            'onclick="setAdmin(' +
-            id +
-            ', true)">' +
-            '👑 관리자 부여' +
-            '</button>';
-        }
-
-        return (
-          '<div class="user">' +
-
-            '<div class="username">' +
-              username +
-              permissionHtml +
-            '</div>' +
-
-            '<div class="info">' +
-              'ID: ' +
-              id +
-            '</div>' +
-
-            '<div class="info">' +
-              '보유금: ' +
-              cash.toLocaleString() +
-              '원' +
-            '</div>' +
-
-            '<div class="info">' +
-              '현재 권한: ' +
-              (
-                isAdmin
-                  ? '👑 관리자'
-                  : '일반 사용자'
-              ) +
-            '</div>' +
-
-            '<div class="actions">' +
-
-              adminButton +
-
-              '<input ' +
-                'id="money-' +
+              ? '<button class="remove" ' +
+                'onclick="setAdmin(' +
                 id +
-                '" ' +
-                'type="number" ' +
-                'min="1" ' +
-                'placeholder="금액">' +
+                ', false)">' +
+                '🔴 관리자 해제' +
+                '</button>'
 
-              '<button ' +
-                'class="money" ' +
-                'onclick="money(' +
+              : '<button class="admin" ' +
+                'onclick="setAdmin(' +
                 id +
-                ', \'give\')">' +
-                '💰 돈 지급' +
-              '</button>' +
+                ', true)">' +
+                '👑 관리자 부여' +
+                '</button>';
 
-              '<button ' +
-                'class="remove" ' +
-                'onclick="money(' +
+          return (
+
+            '<div class="user">' +
+
+              '<div class="username">' +
+                username +
+                permissionHtml +
+              '</div>' +
+
+              '<div class="info">' +
+                'ID: ' +
                 id +
-                ', \'seize\')">' +
-                '💸 돈 회수' +
-              '</button>' +
+              '</div>' +
 
-            '</div>' +
+              '<div class="info">' +
+                '보유금: ' +
+                cash.toLocaleString() +
+                '원' +
+              '</div>' +
 
-          '</div>'
-        );
+              '<div class="info">' +
+                '현재 권한: ' +
+                (
+                  isAdmin
+                    ? '👑 관리자'
+                    : '일반 사용자'
+                ) +
+              '</div>' +
 
-      }).join('');
+              '<div class="actions">' +
+
+                adminButton +
+
+                '<input ' +
+                  'id="money-' +
+                  id +
+                  '" ' +
+                  'type="number" ' +
+                  'min="1" ' +
+                  'placeholder="금액">' +
+
+                '<button ' +
+                  'class="money" ' +
+                  'onclick="money(' +
+                  id +
+                  ', \'give\')">' +
+                  '💰 돈 지급' +
+                '</button>' +
+
+                '<button ' +
+                  'class="remove" ' +
+                  'onclick="money(' +
+                  id +
+                  ', \'seize\')">' +
+                  '💸 돈 회수' +
+                '</button>' +
+
+              '</div>' +
+
+            '</div>'
+
+          );
+
+        }).join('');
 
     } catch (error) {
 
       console.error(
-        'admin page error:',
+        'load users error:',
         error
       );
 
       setStatus(
         error.message ||
-        '관리자 페이지를 불러오지 못했습니다.'
+        '사용자 목록을 불러오지 못했습니다.'
       );
-
-      document.getElementById('users').innerHTML =
-        '<div class="empty">' +
-        escapeHtml(
-          error.message ||
-          '오류가 발생했습니다.'
-        ) +
-        '</div>';
     }
   }
+
 
   async function setAdmin(
     userId,
@@ -467,17 +526,13 @@
 
     } catch (error) {
 
-      console.error(
-        'set admin error:',
-        error
-      );
-
       setStatus(
         error.message ||
         '관리자 권한 변경에 실패했습니다.'
       );
     }
   }
+
 
   async function money(
     userId,
@@ -532,20 +587,12 @@
 
     } catch (error) {
 
-      console.error(
-        'money error:',
-        error
-      );
-
       setStatus(
         error.message ||
         '돈 처리에 실패했습니다.'
       );
     }
   }
-
-  loadUsers();
 </script>
-
 </body>
 </html>
