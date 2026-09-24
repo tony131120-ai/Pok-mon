@@ -730,22 +730,7 @@ button{
   font-weight:900;
 }
 
-.mega-pull-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 85;
-
-  display: grid;
-  place-items: center;
-
-  background:
-    radial-gradient(
-      circle,
-      #1b2b55cc,
-      #000f
-    );
-
-  pointer-events: none;
+pointer-events: auto;
 
   animation:
     megaOverlayIn .25s ease forwards;
@@ -3504,71 +3489,53 @@ function playMegaPullAnimation(card) {
   overlay.appendChild(logo);
   overlay.appendChild(name);
 
- 
-document.body.appendChild(overlay);
+  document.body.appendChild(overlay);
 
-let mouseStartY = 0;
-
-overlay.addEventListener('mousedown', e => {
-  mouseStartY = e.clientY;
-});
-
-overlay.addEventListener('mouseup', e => {
-  if (mouseStartY - e.clientY < 60) {
-    return;
-  }
-
-  overlay.remove();
-
-  nextCard();
-});
-  /* 처음에는 흐리게 */
+  /* 흐리게 → 선명하게 */
   setTimeout(() => {
     image.classList.add('clear');
   }, 700);
 
-  /*
-    메가 연출도 일반 카드처럼
-    위로 스와이프하면 다음 카드로 넘어감
-  */
   let startY = 0;
-  let moved = false;
 
   overlay.addEventListener(
     'touchstart',
     e => {
       startY = e.touches[0].clientY;
-      moved = false;
-    },
-    { passive: true }
-  );
-
-  overlay.addEventListener(
-    'touchmove',
-    e => {
-      const currentY =
-        e.touches[0].clientY;
-
-      if (startY - currentY > 60) {
-        moved = true;
-      }
     },
     { passive: true }
   );
 
   overlay.addEventListener(
     'touchend',
-    () => {
-      if (!moved) return;
+    e => {
+      const endY =
+        e.changedTouches[0].clientY;
 
-      overlay.remove();
+      if (startY - endY > 50) {
+        overlay.remove();
+        nextCard();
+      }
+    }
+  );
 
-      nextCard();
-    },
-    { once: true }
+  overlay.addEventListener(
+    'mousedown',
+    e => {
+      startY = e.clientY;
+    }
+  );
+
+  overlay.addEventListener(
+    'mouseup',
+    e => {
+      if (startY - e.clientY > 50) {
+        overlay.remove();
+        nextCard();
+      }
+    }
   );
 }
-
 /* =========================================================
    SPECIAL ATTACK VIDEO
 ========================================================= */
