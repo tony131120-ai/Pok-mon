@@ -1163,6 +1163,36 @@ pointer-events: auto;
 ></div>
 
 <script>
+  function imageCandidates(c) {
+
+  const b =
+    String(
+      c?.image || ''
+    ).replace(
+      /\/$/,
+      ''
+    );
+
+  if (!b) {
+    return [];
+  }
+
+  // 이미 확장자가 붙어 있는 이미지 주소
+  if (
+    /\.(webp|png|jpg|jpeg)$/i.test(b)
+  ) {
+    return [b];
+  }
+
+  // TCGdex 이미지 자동 대체
+  return [
+    `${b}/high.webp`,
+    `${b}/high.png`,
+    `${b}/low.webp`,
+    `${b}/low.png`,
+    `${b}/high.jpg`
+  ];
+}
 /* =========================================================
    GLOBAL
 ========================================================= */
