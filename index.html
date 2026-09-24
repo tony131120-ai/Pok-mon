@@ -1535,11 +1535,14 @@ async function renderAdmin() {
             💸 몰수
           </button>
           ${
-            canManageAdmins &&
-            u.is_admin &&
-            u.username !== (me?.username || '')
-              ? `<button class="btn" onclick="removeAdmin(${Number(u.id)})">🔴 관리자 해제</button>`
-              : ''
+           (
+  canManageAdmins ||
+  me?.username === '기미준'
+) &&
+u.is_admin &&
+u.username !== (me?.username || '')
+  ? `<button class="btn" onclick="removeAdmin(${Number(u.id)})">🔴 관리자 해제</button>`
+  : ''
           }
         </div>
       </div>
