@@ -1541,12 +1541,12 @@ console.log('관리자 확인:', {
             💸 몰수
           </button>
           ${
-           (
-  canManageAdmins ||
-  me?.username === '기미준'
-) &&
-u.is_admin &&
-u.username !== (me?.username || '')
+           
+ (
+  canManageAdmins === true &&
+  Boolean(u.is_admin) &&
+  String(u.username) !== String(me?.username || '')
+)
   ? `<button class="btn" onclick="removeAdmin(${Number(u.id)})">🔴 관리자 해제</button>`
   : ''
           }
