@@ -747,9 +747,8 @@ app.post('/api/open', auth, async (req, res) => {
     }
 
     const megaPulled =
-      p.name === 'Rayquaza Evolving' &&
-      Math.random() < 0.005;
-
+  p.name === 'Rayquaza Evolving' &&
+  Math.random() * 100 < MEGA_RAYQUAZA_DROP_RATE;
     if (megaPulled) {
       out.push({
         ...MEGA_RAYQUAZA_CARD,
