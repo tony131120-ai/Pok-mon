@@ -1782,7 +1782,15 @@ async function openPack(id) {
   }
 }
 
+function finish() {
 
+  $('#modal')
+    .classList
+    .add('hidden');
+
+  refresh();
+
+}
 function renderCard() {
 
   const stage =
