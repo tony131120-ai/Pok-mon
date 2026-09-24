@@ -167,21 +167,44 @@
 
 </head>
 
-<body>
-
 <div class="wrap">
 
   <h1>👑 PokéPack Vault 관리자</h1>
 
   <div class="sub">
-    관리자 관리 페이지
+    최고 관리자 전용 관리 페이지
   </div>
 
-  <div id="status">
-    로그인 확인 중...
+  <div id="loginBox">
+
+    <div class="login-title">
+      🔐 관리자 토큰
+    </div>
+
+    <input
+      id="adminToken"
+      type="password"
+      placeholder="관리자 토큰 입력"
+      autocomplete="off"
+    >
+
+    <button onclick="loginAdmin()">
+      관리자 확인
+    </button>
+
+    <div id="loginStatus"></div>
+
   </div>
 
-  <div id="users"></div>
+  <div id="adminPanel" style="display:none;">
+
+    <div id="status">
+      관리자 인증 완료
+    </div>
+
+    <div id="users"></div>
+
+  </div>
 
 </div>
 
