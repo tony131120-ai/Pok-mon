@@ -1969,7 +1969,122 @@ image.addEventListener('pointerup', e => {
   }
 
 });
+});
 
+
+}
+
+
+async function nextCard() {
+
+  if (busy)
+    return;
+
+  busy = true;
+
+  const image =
+    $('#stage .reveal');
+
+  if (!image) {
+    busy = false;
+    return;
+  }
+
+  image.style.transition =
+    'transform .42s ease, opacity .42s';
+
+  image.style.transform =
+    'translateY(-120vh) rotate(-10deg)';
+
+  image.style.opacity =
+    '0';
+
+  setTimeout(
+    async () => {
+
+      idx++;
+
+      if (
+        idx <
+        opening.length
+      ) {
+
+        busy = false;
+
+        renderCard();
+
+        return;
+      }
+
+      try {
+
+        for (
+          const card
+          of opening
+        ) {
+
+          try {
+
+            const d =
+              await api(
+                '/api/claim',
+                {
+                  method:
+                    'POST',
+
+                  body:
+                    JSON.stringify({
+                      card
+                    })
+                }
+              );
+
+            me =
+              d.user;
+
+          } catch (e) {
+
+            console.error(e);
+
+          }
+
+        }
+
+        const d =
+          await api(
+            '/api/me'
+          );
+
+        me =
+          d.user;
+
+        inventory =
+          d.inventory ||
+          [];
+
+        refresh();
+
+        $('#hint')
+          .textContent =
+          '🎉 모든 카드 공개 완료';
+
+        $('#prog')
+          .style.width =
+          '100%';
+
+      } catch (e) {
+
+        console.error(e);
+
+      }
+
+      busy = false;
+
+    },
+    430
+  );
+
+}
 /* =========================================================
    INVENTORY
 ========================================================= */
