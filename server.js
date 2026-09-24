@@ -1,3 +1,14 @@
+/* =========================================================
+   MEGA RAYQUAZA DROP RATE
+   Rayquaza Evolving 팩 전용
+========================================================= */
+
+const MEGA_RAYQUAZA_DROP_RATE = 100;
+// 100 = 100%
+// 50  = 50%
+// 10  = 10%
+// 1   = 1%
+// 0   = 등장하지 않음
 import express from 'express';
 import http from 'http';
 import path from 'path';
@@ -432,7 +443,70 @@ app.get('/api/cards', async (req, res) => {
         image: imageUrl(c)
       }))
     );
-  } catch {
+  } 
+  const cards = [];
+
+for (let i = 0; i < 8; i++) {
+  cards.push(
+    pickCard(pool)
+  );
+}
+
+
+/* 여기부터 메가레쿠쟈 확률 코드 */
+const MEGA_RAYQUAZA_DROP_RATE = 100;
+
+const isRayquazaEvolving =
+  String(pack.name || '').trim().toLowerCase() ===
+  'rayquaza evolving';
+
+if (isRayquazaEvolving) {
+  const megaCards = cards.filter(
+    card => card && card.megaRayquaza === true
+  );
+
+  if (
+    megaCards.length > 0 &&
+    Math.random() * 100 < MEGA_RAYQUAZA_DROP_RATE
+  ) {
+    cards[cards.length - 1] =
+      megaCards[
+        Math.floor(Math.random() * megaCards.length)
+      ];
+  }
+}
+const cards = [];
+
+for (let i = 0; i < 8; i++) {
+  cards.push(
+    pickCard(pool)
+  );
+}
+
+
+/* 여기부터 메가레쿠쟈 확률 코드 */
+const MEGA_RAYQUAZA_DROP_RATE = 100;
+
+const isRayquazaEvolving =
+  String(pack.name || '').trim().toLowerCase() ===
+  'rayquaza evolving';
+
+if (isRayquazaEvolving) {
+  const megaCards = cards.filter(
+    card => card && card.megaRayquaza === true
+  );
+
+  if (
+    megaCards.length > 0 &&
+    Math.random() * 100 < MEGA_RAYQUAZA_DROP_RATE
+  ) {
+    cards[cards.length - 1] =
+      megaCards[
+        Math.floor(Math.random() * megaCards.length)
+      ];
+  }
+}
+  catch {
     res.status(502).json({
       error: '카드 데이터를 불러오지 못했습니다.'
     });
