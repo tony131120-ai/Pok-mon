@@ -1046,10 +1046,10 @@ app.post('/api/admin/set-admin', auth, requireAdmin, async (req, res) => {
   !ownerUsername ||
   String(req.user.username || '').trim() !== ownerUsername
 ) {
-      return res.status(403).json({
-        error: '최고 관리자만 사용할 수 있습니다.'
-      });
-    }
+  return res.status(403).json({
+    error: '최고 관리자만 사용할 수 있습니다.'
+  });
+}
 
     const targetId = Number(req.body?.userId);
     const makeAdmin = Boolean(req.body?.makeAdmin);
