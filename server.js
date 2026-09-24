@@ -1601,26 +1601,47 @@ io.on(
             user.username
           );
 
-          online.set(
-            Number(user.id),
-            {
-              userId:
-                Number(user.id),
-              username:
-                user.username,
-              socketId:
-                socket.id
-            }
-          );
+        const userId =
+  Number(user.id);
 
-          socket.data.userId =
-            Number(user.id);
+const oldConnection =
+  online.get(userId);
 
-          io.emit(
-            'online',
-            onlineList()
-          );
+if (
+  oldConnection &&
+  oldConnection.socketId !== socket.id
+) {
+  const oldSocket =
+    io.sockets.sockets.get(
+      oldConnection.socketId
+    );
 
+  if (oldSocket) {
+    oldSocket.disconnect(true);
+  }
+}
+
+online.set(
+  userId,
+  {
+    userId,
+    username:
+      user.username,
+    socketId:
+      socket.id
+  }
+);
+
+socket.data.userId =
+  userId;
+
+socket.data.username =
+  user.username;
+
+io.emit(
+  'online',
+  onlineList()
+);
           socket.emit(
             'ranking',
             await ranking()
