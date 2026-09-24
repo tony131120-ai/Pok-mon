@@ -1748,7 +1748,7 @@ async function openPack(id) {
             'POST',
           body:
             JSON.stringify({
-              packId:id
+              packId: id
             })
         }
       );
@@ -1771,7 +1771,19 @@ async function openPack(id) {
       .classList
       .remove('hidden');
 
-  function renderCard() {
+    renderCard();
+
+  } catch (e) {
+
+    toast(
+      e.message
+    );
+
+  }
+}
+
+
+function renderCard() {
 
   const stage =
     $('#stage');
@@ -1798,10 +1810,6 @@ async function openPack(id) {
   image.className =
     'reveal';
 
-  /*
-    메가레쿠쟈 카드일 때만
-    흐림 → 선명 이펙트 적용
-  */
   if (c.megaRayquaza) {
     image.classList.add(
       'mega-reveal'
@@ -1833,9 +1841,12 @@ async function openPack(id) {
         k <
         urls.length
       ) {
+
         image.src =
           urls[k++];
+
       } else {
+
         image.removeAttribute(
           'src'
         );
@@ -1856,15 +1867,27 @@ async function openPack(id) {
   stage.appendChild(
     image
   );
-    if (c.megaRayquaza) {
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      image.classList.add(
-        'mega-clear'
-      );
-    }, 100);
-  });
-}
+
+  if (c.megaRayquaza) {
+
+    requestAnimationFrame(
+      () => {
+
+        setTimeout(
+          () => {
+
+            image.classList.add(
+              'mega-clear'
+            );
+
+          },
+          100
+        );
+
+      }
+    );
+
+  }
 
   $('#prog')
     .style.width =
@@ -1879,7 +1902,7 @@ async function openPack(id) {
     idx ===
     opening.length - 1
       ? '✨ 마지막 카드! 이 카드에서 좋은 카드가 나올 수 있습니다.'
-      : `↑ 위로 스와이프해서 ${idx+1}번째 카드 공개`;
+      : `↑ 위로 스와이프해서 ${idx + 1}번째 카드 공개`;
 
   let startY = 0;
 
@@ -1893,13 +1916,16 @@ async function openPack(id) {
         e.clientY;
 
       try {
+
         image.setPointerCapture(
           e.pointerId
         );
+
       } catch {}
+
     };
 
-   image.onpointerup =
+  image.onpointerup =
     e => {
 
       if (busy)
@@ -1912,11 +1938,9 @@ async function openPack(id) {
       ) {
         nextCard();
       }
-    };
-}
 
-/* openPack 함수 종료 */
-renderCard();
+    };
+
 }
 
 /* =========================================================
