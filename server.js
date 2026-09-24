@@ -2870,7 +2870,38 @@ app.post('/api/admin/panel-login', async (req, res) => {
 });
 async function boot() {
   await setupDatabase();
+
+  const PORT =
+    process.env.PORT || 3000;
+
+  server.listen(
+    PORT,
+    '0.0.0.0',
+    () => {
+      console.log(
+        `Server running on port ${PORT}`
+      );
+    }
+  );
 }
+
+boot().catch((error) => {
+  console.error(
+    'BOOT ERROR:',
+    error
+  );
+
+  process.exit(1);
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(
+    path.join(
+      process.cwd(),
+      'admin.html'
+    )
+  );
+});
 app.get('/admin', (req, res) => {
   res.sendFile(
     path.join(process.cwd(), 'admin.html')
