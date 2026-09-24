@@ -1791,13 +1791,12 @@ function renderCard() {
   stage.innerHTML =
     '';
 
-  if (
-    idx >=
-    opening.length
-  ) {
-    finish();
-    return;
-  }
+ if (
+  idx >=
+  opening.length
+) {
+  return;
+}
 
   const c =
     opening[idx];
