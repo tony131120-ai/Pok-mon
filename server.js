@@ -899,8 +899,9 @@ app.post('/api/sell/:id', auth, async (req, res) => {
 
 
 /* =========================================================
-   ADMIN MONEY CONTROL
+   ADMIN CONTROL
 ========================================================= */
+
 function requirePanelToken(req, res, next) {
   const expected =
     String(
@@ -924,166 +925,87 @@ function requirePanelToken(req, res, next) {
 
   next();
 }
+
+
 async function requireAdmin(req, res, next) {
   if (!req.user || !req.user.is_admin) {
     return res.status(403).json({
       error: '관리자 권한이 필요합니다.'
     });
   }
+
   next();
 }
 
+
+/* =========================================================
+   메인 사이트 관리자 설정
+   일반 관리자 + 최고 관리자 사용 가능
+========================================================= */
+
 app.get(
   '/api/admin/users',
-  requirePanelToken,
+  auth,
+  requireAdmin,
   async (req, res) => {
     try {
       const q = await pool.query(`
-        SELECT id, username, cash, is_admin
+        SELECT
+          id,
+          username,
+          cash,
+          is_admin
         FROM users
         ORDER BY username ASC, id ASC
       `);
 
       res.json({
-        users: q.rows,
-        canManageAdmins: true
+        users: q.rows
       });
 
     } catch (e) {
       console.error(
-        'admin users error',
+        'admin users error:',
         e
       );
 
       res.status(500).json({
-        error: '사용자 목록을 불러오지 못했습니다.'
+        error:
+          '사용자 목록을 불러오지 못했습니다.'
       });
     }
   }
 );
 
 
+/* =========================================================
+   메인 사이트 돈 지급 / 회수
+   일반 관리자 + 최고 관리자 사용 가능
+========================================================= */
+
 app.post(
   '/api/admin/money',
-  requirePanelToken,
+  auth,
+  requireAdmin,
   async (req, res) => {
     try {
       const targetId =
-        Number(req.body?.userId);
+        Number(
+          req.body?.userId
+        );
 
       const amount =
         Math.floor(
-          Number(req.body?.amount)
+          Number(
+            req.body?.amount
+          )
         );
 
       const action =
         String(
           req.body?.action || ''
-        );
-
-      if (
-        !Number.isInteger(targetId) ||
-        targetId <= 0
-      ) {
-        return res.status(400).json({
-          error: '올바른 사용자를 선택하세요.'
-        });
-      }
-
-      if (
-        !Number.isFinite(amount) ||
-        amount <= 0 ||
-        amount > 1000000000000
-      ) {
-        return res.status(400).json({
-          error: '금액은 1 이상이어야 합니다.'
-        });
-      }
-
-      if (
-        action !== 'give' &&
-        action !== 'seize'
-      ) {
-        return res.status(400).json({
-          error: '잘못된 작업입니다.'
-        });
-      }
-
-      const sql =
-        action === 'give'
-          ? `
-              UPDATE users
-              SET cash = cash + $1
-              WHERE id = $2
-              RETURNING id, username, cash, is_admin
-            `
-          : `
-              UPDATE users
-              SET cash = GREATEST(0, cash - $1)
-              WHERE id = $2
-              RETURNING id, username, cash, is_admin
-            `;
-
-      const q =
-        await pool.query(
-          sql,
-          [amount, targetId]
-        );
-
-      if (!q.rowCount) {
-        return res.status(404).json({
-          error: '사용자를 찾을 수 없습니다.'
-        });
-      }
-
-      await broadcastRanking();
-
-      res.json({
-        user: q.rows[0],
-        action,
-        amount
-      });
-
-    } catch (e) {
-      console.error(
-        'admin money error',
-        e
-      );
-
-      res.status(500).json({
-        error: '돈을 변경하지 못했습니다.'
-      });
-    }
-  }
-);
-
-
-app.post(
-  '/api/admin/set-admin',
-  requirePanelToken,
-  async (req, res) => {
-    try {
-      const ownerUsername =
-        String(
-          process.env.OWNER_USERNAME || ''
         ).trim();
 
-      const targetId =
-        Number(req.body?.userId);
-
-      const makeAdmin =
-        Boolean(
-          req.body?.makeAdmin
-        );
-
-      if (
-        !ownerUsername
-      ) {
-        return res.status(500).json({
-          error:
-            'OWNER_USERNAME이 설정되지 않았습니다.'
-        });
-      }
 
       if (
         !Number.isInteger(targetId) ||
@@ -1095,13 +1017,182 @@ app.post(
         });
       }
 
+
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0 ||
+        amount > 1000000000000
+      ) {
+        return res.status(400).json({
+          error:
+            '금액은 1 이상이어야 합니다.'
+        });
+      }
+
+
+      if (
+        action !== 'give' &&
+        action !== 'seize'
+      ) {
+        return res.status(400).json({
+          error:
+            '잘못된 작업입니다.'
+        });
+      }
+
+
+      if (
+        targetId ===
+        Number(req.user.id)
+      ) {
+        return res.status(400).json({
+          error:
+            '관리자 자신의 돈은 변경할 수 없습니다.'
+        });
+      }
+
+
+      const sql =
+        action === 'give'
+          ? `
+              UPDATE users
+              SET cash = cash + $1
+              WHERE id = $2
+              RETURNING
+                id,
+                username,
+                cash,
+                is_admin
+            `
+          : `
+              UPDATE users
+              SET cash =
+                GREATEST(
+                  0,
+                  cash - $1
+                )
+              WHERE id = $2
+              RETURNING
+                id,
+                username,
+                cash,
+                is_admin
+            `;
+
+
+      const q =
+        await pool.query(
+          sql,
+          [
+            amount,
+            targetId
+          ]
+        );
+
+
+      if (!q.rowCount) {
+        return res.status(404).json({
+          error:
+            '사용자를 찾을 수 없습니다.'
+        });
+      }
+
+
+      try {
+        await broadcastRanking();
+      } catch (rankingError) {
+        console.error(
+          'broadcast ranking error:',
+          rankingError
+        );
+      }
+
+
+      res.json({
+        success: true,
+        user: q.rows[0],
+        action,
+        amount
+      });
+
+    } catch (e) {
+      console.error(
+        'admin money error:',
+        e
+      );
+
+      res.status(500).json({
+        error:
+          '돈을 변경하지 못했습니다.'
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   최고 관리자 전용
+   관리자 부여 / 관리자 해제
+========================================================= */
+
+app.post(
+  '/api/admin/set-admin',
+  requirePanelToken,
+  async (req, res) => {
+    try {
+      const ownerUsername =
+        String(
+          process.env.OWNER_USERNAME || ''
+        ).trim();
+
+
+      if (!ownerUsername) {
+        return res.status(500).json({
+          error:
+            'OWNER_USERNAME이 설정되지 않았습니다.'
+        });
+      }
+
+
+      const targetId =
+        Number(
+          req.body?.userId
+        );
+
+
+      const makeAdmin =
+        Boolean(
+          req.body?.makeAdmin
+        );
+
+
+      if (
+        !Number.isInteger(targetId) ||
+        targetId <= 0
+      ) {
+        return res.status(400).json({
+          error:
+            '올바른 사용자를 선택하세요.'
+        });
+      }
+
+
       const target =
         await pool.query(
-          `SELECT id, username, is_admin
-           FROM users
-           WHERE id = $1`,
-          [targetId]
+          `
+            SELECT
+              id,
+              username,
+              cash,
+              is_admin
+            FROM users
+            WHERE id = $1
+          `,
+          [
+            targetId
+          ]
         );
+
 
       if (!target.rowCount) {
         return res.status(404).json({
@@ -1110,8 +1201,10 @@ app.post(
         });
       }
 
+
       const targetUser =
         target.rows[0];
+
 
       if (
         String(
@@ -1125,23 +1218,38 @@ app.post(
         });
       }
 
+
       const q =
         await pool.query(
-          `UPDATE users
-           SET is_admin = $1
-           WHERE id = $2
-           RETURNING id, username, cash, is_admin`,
-          [makeAdmin, targetId]
+          `
+            UPDATE users
+            SET is_admin = $1
+            WHERE id = $2
+            RETURNING
+              id,
+              username,
+              cash,
+              is_admin
+          `,
+          [
+            makeAdmin,
+            targetId
+          ]
         );
+
 
       res.json({
         success: true,
-        user: q.rows[0]
+        user: q.rows[0],
+        action:
+          makeAdmin
+            ? 'grant'
+            : 'revoke'
       });
 
     } catch (e) {
       console.error(
-        'set admin error',
+        'set admin error:',
         e
       );
 
