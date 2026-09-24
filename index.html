@@ -1865,10 +1865,7 @@ function renderCard() {
     image
   );
 
-  if (c.megaRayquaza) {
-    setTimeout(() => playMegaPullAnimation(c), 120);
-  }
-
+  
   $('#prog')
     .style.width =
     (
@@ -3441,101 +3438,7 @@ function attack(
   );
 }
 
-function playMegaPullAnimation(card) {
-  const old =
-    document.querySelector('.mega-pull-overlay');
 
-  if (old) {
-    old.remove();
-  }
-
-  const overlay =
-    document.createElement('div');
-
-  overlay.className =
-    'mega-pull-overlay';
-
-  const image =
-    document.createElement('img');
-
-  image.className =
-    'mega-pull-card';
-
-  image.src =
-    card?.image || '';
-
-  image.alt =
-    '메가레쿠쟈 ex';
-
-  const logo =
-    document.createElement('div');
-
-  logo.className =
-    'mega-logo';
-
-  logo.textContent =
-    'MEGA EVOLUTION';
-
-  const name =
-    document.createElement('div');
-
-  name.className =
-    'mega-pull-name';
-
-  name.textContent =
-    '🐉 메가레쿠쟈 ex · 스톰에메랄다';
-
-  overlay.appendChild(image);
-  overlay.appendChild(logo);
-  overlay.appendChild(name);
-
-  document.body.appendChild(overlay);
-
-  /* 흐리게 → 선명하게 */
-  setTimeout(() => {
-    image.classList.add('clear');
-  }, 700);
-
-  let startY = 0;
-
-  overlay.addEventListener(
-    'touchstart',
-    e => {
-      startY = e.touches[0].clientY;
-    },
-    { passive: true }
-  );
-
-  overlay.addEventListener(
-    'touchend',
-    e => {
-      const endY =
-        e.changedTouches[0].clientY;
-
-      if (startY - endY > 50) {
-        overlay.remove();
-        nextCard();
-      }
-    }
-  );
-
-  overlay.addEventListener(
-    'mousedown',
-    e => {
-      startY = e.clientY;
-    }
-  );
-
-  overlay.addEventListener(
-    'mouseup',
-    e => {
-      if (startY - e.clientY > 50) {
-        overlay.remove();
-        nextCard();
-      }
-    }
-  );
-}
 /* =========================================================
    SPECIAL ATTACK VIDEO
 ========================================================= */
