@@ -3102,6 +3102,11 @@ function escapeHtml(value) {
 </html>
   `);
 });
+  app.get('/admin', (req, res) => {
+  res.sendFile(
+    path.join(process.cwd(), 'admin.html')
+  );
+});
   server.listen(
     PORT,
     () => {
