@@ -901,7 +901,29 @@ app.post('/api/sell/:id', auth, async (req, res) => {
 /* =========================================================
    ADMIN MONEY CONTROL
 ========================================================= */
+function requirePanelToken(req, res, next) {
+  const expected =
+    String(
+      process.env.ADMIN_PANEL_TOKEN || ''
+    ).trim();
 
+  const supplied =
+    String(
+      req.headers['x-admin-panel-token'] || ''
+    ).trim();
+
+  if (
+    !expected ||
+    !supplied ||
+    supplied !== expected
+  ) {
+    return res.status(403).json({
+      error: '관리자 패널 인증이 필요합니다.'
+    });
+  }
+
+  next();
+}
 async function requireAdmin(req, res, next) {
   if (!req.user || !req.user.is_admin) {
     return res.status(403).json({
@@ -911,7 +933,10 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-app.get('/api/admin/users', auth, requireAdmin, async (req, res) => {
+app.get(
+  '/api/admin/users',
+  requirePanelToken,
+  async (req, res) => {
   try {
     const q = await pool.query(`
       SELECT id, username, cash, is_admin
@@ -938,7 +963,10 @@ res.json({
   }
 });
 
-app.post('/api/admin/money', auth, requireAdmin, async (req, res) => {
+app.post(
+  '/api/admin/money',
+  requirePanelToken,
+  async (req, res) => {
   try {
     const targetId = Number(req.body?.userId);
     const amount = Math.floor(Number(req.body?.amount));
@@ -1035,7 +1063,10 @@ app.post('/api/setup-admin', async (req, res) => {
     });
   }
 });
-app.post('/api/admin/set-admin', auth, requireAdmin, async (req, res) => {
+app.post(
+  '/api/admin/set-admin',
+  requirePanelToken,
+  async (req, res) => {
   try {
     const ownerUsername = String(
       process.env.OWNER_USERNAME || ''
