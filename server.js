@@ -2911,18 +2911,14 @@ app.get('/admin', (req, res) => {
   </style>
 </head>
 
+```html
 <body>
 <div class="wrap">
 
   <h1>👑 PokéPack Vault 관리자</h1>
-  <div class="sub">최고 관리자 전용 관리 페이지</div>
+  <div class="sub">관리자 관리 페이지</div>
 
-  <div class="login">
-    <input id="token" placeholder="로그인 토큰(pp_token)" style="width:70%">
-    <button onclick="loadUsers()">관리자 확인</button>
-  </div>
-
-  <div id="status"></div>
+  <div id="status">로그인 확인 중...</div>
   <div id="users"></div>
 
 </div>
@@ -2952,14 +2948,15 @@ async function api(url, options = {}) {
 }
 
 async function loadUsers() {
-  token = document.getElementById('token').value.trim();
-
-  if (!token) {
-    setStatus('로그인 토큰을 입력하세요.');
-    return;
-  }
-
   try {
+    // 기존 사이트 로그인 토큰을 자동으로 가져옴
+    token = localStorage.getItem('pp_token') || '';
+
+    if (!token) {
+      setStatus('로그인이 필요합니다. 먼저 메인 사이트에 로그인하세요.');
+      return;
+    }
+
     const data = await api('/api/admin/users');
 
     if (data.canManageAdmins !== true) {
@@ -2967,74 +2964,85 @@ async function loadUsers() {
       return;
     }
 
-    setStatus('관리자 권한 확인 완료');
+    setStatus('👑 최고 관리자 인증 완료');
 
     const box = document.getElementById('users');
 
     box.innerHTML = data.users.map(u => {
       const isAdmin = Boolean(u.is_admin);
 
-      return \`
+      return `
         <div class="user">
-          <b>\${escapeHtml(u.username)}</b>
-          <div>ID: \${Number(u.id)}</div>
-          <div>보유금: \${Number(u.cash).toLocaleString()}원</div>
+          <b>${escapeHtml(u.username)}</b>
+
+          <div>ID: ${Number(u.id)}</div>
+
           <div>
-            현재 권한:
-            \${isAdmin ? '👑 관리자' : '일반 사용자'}
+            보유금:
+            ${Number(u.cash).toLocaleString()}원
           </div>
 
           <div>
-            \${
+            현재 권한:
+            ${isAdmin ? '👑 관리자' : '일반 사용자'}
+          </div>
+
+          <div>
+            ${
               isAdmin
-                ? \`<button class="remove"
-                    onclick="setAdmin(\${Number(u.id)}, false)">
+                ? `<button
+                    class="remove"
+                    onclick="setAdmin(${Number(u.id)}, false)">
                     🔴 관리자 해제
-                  </button>\`
-                : \`<button class="admin"
-                    onclick="setAdmin(\${Number(u.id)}, true)">
+                  </button>`
+                : `<button
+                    class="admin"
+                    onclick="setAdmin(${Number(u.id)}, true)">
                     👑 관리자 부여
-                  </button>\`
+                  </button>`
             }
 
             <input
-              id="money-\${Number(u.id)}"
+              id="money-${Number(u.id)}"
               type="number"
               min="1"
               placeholder="금액"
             >
 
-            <button class="money"
-              onclick="money(\${Number(u.id)}, 'give')">
+            <button
+              class="money"
+              onclick="money(${Number(u.id)}, 'give')">
               💰 돈 지급
             </button>
 
-            <button class="remove"
-              onclick="money(\${Number(u.id)}, 'seize')">
+            <button
+              class="remove"
+              onclick="money(${Number(u.id)}, 'seize')">
               💸 돈 회수
             </button>
           </div>
         </div>
-      \`;
+      `;
     }).join('');
 
   } catch (e) {
+    console.error('admin page error:', e);
     setStatus(e.message);
   }
 }
 
 async function setAdmin(userId, makeAdmin) {
-  if (
-    !confirm(
-      makeAdmin
-        ? '이 사용자에게 관리자 권한을 부여할까요?'
-        : '이 사용자의 관리자 권한을 해제할까요?'
-    )
-  ) {
+
+  const message = makeAdmin
+    ? '이 사용자에게 관리자 권한을 부여할까요?'
+    : '이 사용자의 관리자 권한을 해제할까요?';
+
+  if (!confirm(message)) {
     return;
   }
 
   try {
+
     await api('/api/admin/set-admin', {
       method: 'POST',
       body: JSON.stringify({
@@ -3045,20 +3053,25 @@ async function setAdmin(userId, makeAdmin) {
 
     setStatus(
       makeAdmin
-        ? '관리자 권한을 부여했습니다.'
-        : '관리자 권한을 해제했습니다.'
+        ? '👑 관리자 권한을 부여했습니다.'
+        : '🔴 관리자 권한을 해제했습니다.'
     );
 
     await loadUsers();
 
   } catch (e) {
+    console.error('set admin error:', e);
     setStatus(e.message);
   }
 }
 
 async function money(userId, action) {
-  const input = document.getElementById('money-' + userId);
-  const amount = Math.floor(Number(input.value));
+
+  const input =
+    document.getElementById('money-' + userId);
+
+  const amount =
+    Math.floor(Number(input.value));
 
   if (!Number.isFinite(amount) || amount <= 0) {
     alert('올바른 금액을 입력하세요.');
@@ -3066,6 +3079,7 @@ async function money(userId, action) {
   }
 
   try {
+
     await api('/api/admin/money', {
       method: 'POST',
       body: JSON.stringify({
@@ -3077,13 +3091,14 @@ async function money(userId, action) {
 
     setStatus(
       action === 'give'
-        ? '돈을 지급했습니다.'
-        : '돈을 회수했습니다.'
+        ? '💰 돈을 지급했습니다.'
+        : '💸 돈을 회수했습니다.'
     );
 
     await loadUsers();
 
   } catch (e) {
+    console.error('money error:', e);
     setStatus(e.message);
   }
 }
@@ -3096,189 +3111,11 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
+
+// 페이지가 열리면 자동으로 로그인 확인
+loadUsers();
 </script>
 
-</body>
-</html>
-  `);
-});
-  server.listen(
-    PORT,
-    () => {
-      console.log(
-        `PokéPack Vault online on ${PORT}`
-      );
-    }
-  );
-}
-
-boot().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
-app.post('/api/setup-admin', async (req, res) => {
-  try {
-    const setupKey = String(req.body?.setupKey || '');
-    const username = String(req.body?.username || '').trim();
-
-    if (setupKey !== process.env.ADMINSETUPKEY) {
-      return res.status(403).json({
-        error: '잘못된 설정 키입니다.'
-      });
-    }
-
-    if (!username) {
-      return res.status(400).json({
-        error: '아이디를 입력하세요.'
-      });
-    }
-
-    const q = await pool.query(
-      `UPDATE users
-       SET is_admin = true
-       WHERE username = $1
-       RETURNING id, username, is_admin`,
-      [username]
-    );
-
-    if (!q.rowCount) {
-      return res.status(404).json({
-        error: '해당 아이디를 찾을 수 없습니다.'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: '관리자 권한이 설정되었습니다.',
-      user: q.rows[0]
-    });
-  } catch (e) {
-    console.error('setup admin error', e);
-    res.status(500).json({
-      error: '관리자 설정에 실패했습니다.'
-    });
-  }
-});
-app.get('/setup-admin', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Setup</title>
-<style>
-  body {
-    margin: 0;
-    padding: 30px 20px;
-    background: #101827;
-    color: white;
-    font-family: Arial, sans-serif;
-  }
-
-  .box {
-    max-width: 420px;
-    margin: 40px auto;
-    padding: 24px;
-    background: #1b2638;
-    border-radius: 16px;
-  }
-
-  h1 {
-    margin-top: 0;
-  }
-
-  input, button {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 14px;
-    margin-top: 12px;
-    border-radius: 10px;
-    border: 0;
-    font-size: 16px;
-  }
-
-  button {
-    cursor: pointer;
-    background: #3b82f6;
-    color: white;
-    font-weight: bold;
-  }
-
-  #result {
-    margin-top: 18px;
-    white-space: pre-wrap;
-  }
-</style>
-</head>
-
-<body>
-  <div class="box">
-    <h1>🔐 관리자 설정</h1>
-
-    <input
-      id="username"
-      placeholder="관리자로 만들 아이디"
-      autocomplete="off"
-    >
-
-    <input
-      id="setupKey"
-      type="password"
-      placeholder="관리자 설정 키"
-      autocomplete="off"
-    >
-
-    <button onclick="setupAdmin()">
-      관리자 권한 설정
-    </button>
-
-    <div id="result"></div>
-  </div>
-
-<script>
-async function setupAdmin() {
-  const username = document.getElementById('username').value.trim();
-  const setupKey = document.getElementById('setupKey').value;
-
-  const result = document.getElementById('result');
-
-  if (!username || !setupKey) {
-    result.textContent = '아이디와 설정 키를 입력하세요.';
-    return;
-  }
-
-  result.textContent = '처리 중...';
-
-  try {
-    const response = await fetch('/api/setup-admin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username,
-        setupKey
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      result.textContent =
-        '❌ ' + (data.error || '설정에 실패했습니다.');
-      return;
-    }
-
-    result.textContent =
-      '✅ 관리자 권한 설정 완료!\\n' +
-      '아이디: ' + data.user.username + '\\n' +
-      'is_admin: ' + data.user.is_admin;
-  } catch (e) {
-    result.textContent = '❌ 서버와 연결할 수 없습니다.';
-  }
-}
-</script>
 </body>
 </html>
   `);
