@@ -920,12 +920,18 @@ app.get('/api/admin/users', auth, requireAdmin, async (req, res) => {
       ORDER BY username ASC, id ASC
     `, [req.user.id]);
 
-    res.json({
-      users: q.rows,
-      canManageAdmins:
-        Boolean(process.env.OWNER_USERNAME) &&
-        String(req.user.username) === String(process.env.OWNER_USERNAME).trim()
-    });
+    const ownerUsername = String(
+  process.env.OWNER_USERNAME || ''
+).trim();
+
+const isOwner =
+  ownerUsername &&
+  String(req.user.username || '').trim() === ownerUsername;
+
+res.json({
+  users: q.rows,
+  canManageAdmins: Boolean(isOwner)
+});
   } catch (e) {
     console.error('admin users error', e);
     res.status(500).json({ error: '사용자 목록을 불러오지 못했습니다.' });
@@ -1036,10 +1042,10 @@ app.post('/api/admin/set-admin', auth, requireAdmin, async (req, res) => {
     ).trim();
 
     // 최고 관리자만 관리자 권한을 변경할 수 있음
-    if (
-      !ownerUsername ||
-      req.user.username !== ownerUsername
-    ) {
+  if (
+  !ownerUsername ||
+  String(req.user.username || '').trim() !== ownerUsername
+) {
       return res.status(403).json({
         error: '최고 관리자만 사용할 수 있습니다.'
       });
