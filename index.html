@@ -1510,7 +1510,11 @@ async function renderAdmin() {
   d.canManageAdmins === true ||
   me?.username === '기미준';
     const box = $('#adminUsers');
-
+console.log('관리자 확인:', {
+  me,
+  users,
+  canManageAdmins: d.canManageAdmins
+});
     if (!users.length) {
       box.innerHTML = '<p class="muted">관리할 다른 사용자가 없습니다.</p>';
       return;
