@@ -443,15 +443,14 @@ app.get('/api/cards', async (req, res) => {
         image: imageUrl(c)
       }))
     );
-  } 
-} 
-  const cards = [];
+  } catch (error) {
+    console.error('GET /api/cards ERROR:', error);
 
-for (let i = 0; i < 8; i++) {
-  cards.push(
-    pickCard(pool)
-  );
-}
+    res.status(500).json({
+      error: '카드를 불러오지 못했습니다.'
+    });
+  }
+});
 
 
 /* 여기부터 메가레쿠쟈 확률 코드 */
