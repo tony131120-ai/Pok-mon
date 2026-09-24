@@ -1899,7 +1899,7 @@ async function openPack(id) {
       } catch {}
     };
 
-  image.onpointerup =
+   image.onpointerup =
     e => {
 
       if (busy)
@@ -1914,6 +1914,11 @@ async function openPack(id) {
       }
     };
 }
+
+/* openPack 함수 종료 */
+renderCard();
+}
+
 /* =========================================================
    INVENTORY
 ========================================================= */
