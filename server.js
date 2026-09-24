@@ -1076,7 +1076,9 @@ app.post('/api/admin/set-admin', auth, requireAdmin, async (req, res) => {
     const targetUser = target.rows[0];
 
     // 최고 관리자 자신은 변경 불가
-    if (targetUser.username === ownerUsername) {
+    if (
+  String(targetUser.username || '').trim() === ownerUsername
+) {
       return res.status(403).json({
         error: '최고 관리자는 변경할 수 없습니다.'
       });
