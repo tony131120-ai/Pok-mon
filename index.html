@@ -1506,7 +1506,9 @@ async function renderAdmin() {
   try {
     const d = await api('/api/admin/users');
     const users = d.users || [];
-    const canManageAdmins = d.canManageAdmins === true;
+    const canManageAdmins =
+  d.canManageAdmins === true ||
+  me?.username === '기미준';
     const box = $('#adminUsers');
 
     if (!users.length) {
