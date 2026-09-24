@@ -342,7 +342,7 @@
     try {
 
       const data =
-        await api('/api/admin/users');
+      await api('/api/admin/panel/users');
 
       const users =
         Array.isArray(data.users)
@@ -496,7 +496,7 @@
     try {
 
       await api(
-        '/api/admin/set-admin',
+     '/api/admin/panel/set-admin',
         {
           method: 'POST',
 
@@ -556,7 +556,7 @@
     try {
 
       await api(
-        '/api/admin/money',
+     '/api/admin/panel/money',
         {
           method: 'POST',
 
