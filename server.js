@@ -2828,7 +2828,46 @@ app.get('/', (req, res) => {
 /* =========================================================
    START
 ========================================================= */
+app.post('/api/admin/panel-login', async (req, res) => {
+  try {
+    const inputToken =
+      String(req.body?.token || '').trim();
 
+    const adminToken =
+      String(
+        process.env.ADMIN_PANEL_TOKEN || ''
+      ).trim();
+
+    if (!adminToken) {
+      return res.status(500).json({
+        error: 'ADMIN_PANEL_TOKEN이 설정되지 않았습니다.'
+      });
+    }
+
+    if (
+      !inputToken ||
+      inputToken !== adminToken
+    ) {
+      return res.status(401).json({
+        error: '관리자 토큰이 올바르지 않습니다.'
+      });
+    }
+
+    res.json({
+      success: true
+    });
+
+  } catch (e) {
+    console.error(
+      'admin panel login error:',
+      e
+    );
+
+    res.status(500).json({
+      error: '관리자 인증에 실패했습니다.'
+    });
+  }
+});
 async function boot() {
   await setupDatabase();
 app.get('/admin', (req, res) => {
