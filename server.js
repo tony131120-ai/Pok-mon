@@ -2870,6 +2870,7 @@ app.post('/api/admin/panel-login', async (req, res) => {
 });
 async function boot() {
   await setupDatabase();
+}
 app.get('/admin', (req, res) => {
   res.sendFile(
     path.join(process.cwd(), 'admin.html')
