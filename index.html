@@ -1127,19 +1127,23 @@ function toast(text) {
 ========================================================= */
 
 async function signup() {
+
   try {
+
     const d =
       await api(
         '/api/signup',
         {
           method:
             'POST',
+
           body:
             JSON.stringify({
               username:
                 $('#name')
                   .value
                   .trim(),
+
               password:
                 $('#pass')
                   .value
@@ -1158,26 +1162,33 @@ async function signup() {
     await start();
 
   } catch (e) {
-    toast(e.message);
+
+    toast(
+      e.message
+    );
+
   }
 }
 
+
 async function login() {
-  alert('로그인 함수 실행됨');
 
   try {
+
     const d =
       await api(
         '/api/login',
         {
           method:
             'POST',
+
           body:
             JSON.stringify({
               username:
                 $('#name')
                   .value
                   .trim(),
+
               password:
                 $('#pass')
                   .value
@@ -1196,13 +1207,19 @@ async function login() {
     await start();
 
   } catch (e) {
-    toast(e.message);
+
+    toast(
+      e.message
+    );
+
   }
 }
+
+
 async function start() {
-  alert('start 실행됨');
 
   try {
+
     const d =
       await api(
         '/api/me'
@@ -1214,11 +1231,24 @@ async function start() {
     inventory =
       d.inventory ||
       [];
-if (me && me.is_admin === true) {
-  $('#adminTab').classList.remove('hidden');
-} else {
-  $('#adminTab').classList.add('hidden');
-}
+
+    if (
+      me &&
+      me.is_admin === true
+    ) {
+
+      $('#adminTab')
+        .classList
+        .remove('hidden');
+
+    } else {
+
+      $('#adminTab')
+        .classList
+        .add('hidden');
+
+    }
+
     const p =
       await api(
         '/api/packs'
@@ -1226,7 +1256,7 @@ if (me && me.is_admin === true) {
 
     packs =
       p.sort(
-        (a,b) =>
+        (a, b) =>
           a.price -
           b.price
       );
@@ -1249,20 +1279,25 @@ if (me && me.is_admin === true) {
       'pp_token'
     );
 
-    token = null;
+    token =
+      null;
 
     toast(
       e.message
     );
+
   }
 }
 
+
 function logout() {
+
   localStorage.removeItem(
     'pp_token'
   );
 
   location.reload();
+
 }
 
 /* =========================================================
