@@ -1941,44 +1941,34 @@ function renderCard() {
       ? '✨ 마지막 카드! 이 카드에서 좋은 카드가 나올 수 있습니다.'
       : `↑ 위로 스와이프해서 ${idx + 1}번째 카드 공개`;
 
-  let startY = 0;
+ let startY = 0;
 
-  image.onpointerdown =
-    e => {
+image.addEventListener('pointerdown', e => {
 
-      if (busy)
-        return;
+  if (busy)
+    return;
 
-      startY =
-        e.clientY;
+  startY = e.clientY;
 
-      try {
+  try {
+    image.setPointerCapture(e.pointerId);
+  } catch {}
 
-        image.setPointerCapture(
-          e.pointerId
-        );
+});
 
-      } catch {}
+image.addEventListener('pointerup', e => {
 
-    };
+  if (busy)
+    return;
 
-  image.onpointerup =
-    e => {
+  const distance =
+    startY - e.clientY;
 
-      if (busy)
-        return;
+  if (distance > 60) {
+    nextCard();
+  }
 
-      if (
-        startY -
-        e.clientY >
-        60
-      ) {
-        nextCard();
-      }
-
-    };
-
-}
+});
 
 /* =========================================================
    INVENTORY
