@@ -2071,7 +2071,7 @@ function renderOnline() {
    SOCKET
 ========================================================= */
 
-function connect() function surrenderBattle() {
+function surrenderBattle() {
 
   if (
     !battle ||
@@ -2099,8 +2099,10 @@ function connect() function surrenderBattle() {
         battle.id
     }
   );
-} {
+}
 
+
+function connect() {
 
   if (socket) {
     socket.disconnect();
@@ -2112,12 +2114,15 @@ function connect() function surrenderBattle() {
   socket.on(
     'connect',
     () => {
+
       socket.emit(
         'auth',
         token
       );
+
     }
   );
+
 
   socket.on(
     'online',
@@ -2127,8 +2132,10 @@ function connect() function surrenderBattle() {
         players || [];
 
       renderOnline();
+
     }
   );
+
 
   socket.on(
     'ranking',
@@ -2138,15 +2145,22 @@ function connect() function surrenderBattle() {
         data || [];
 
       renderRank();
+
     }
   );
+
 
   socket.on(
     'toast',
     message => {
-      toast(message);
+
+      toast(
+        message
+      );
+
     }
   );
+
 
   socket.on(
     'battle:incoming',
@@ -2162,18 +2176,23 @@ function connect() function surrenderBattle() {
         {
           to:
             data.from,
+
           accepted:
             ok
         }
       );
+
     }
   );
+
 
   socket.on(
     'battle:answer',
     data => {
 
-      if (data.accepted) {
+      if (
+        data.accepted
+      ) {
 
         toast(
           `⚔️ ${data.from}님이 배틀을 수락했습니다!`
@@ -2184,9 +2203,12 @@ function connect() function surrenderBattle() {
         toast(
           `${data.from}님이 배틀을 거절했습니다.`
         );
+
       }
+
     }
   );
+
 
   socket.on(
     'battle:started',
@@ -2203,8 +2225,10 @@ function connect() function surrenderBattle() {
       openBattle();
 
       showBattleSelect6();
+
     }
   );
+
 
   socket.on(
     'battle:selected',
@@ -2213,17 +2237,22 @@ function connect() function surrenderBattle() {
       toast(
         '포켓몬 6장 선택 완료! 상대의 선택을 기다립니다.'
       );
+
     }
   );
+
 
   socket.on(
     'battle:error',
     data => {
+
       toast(
         data.message
       );
+
     }
   );
+
 
   socket.on(
     'battle:decksReady',
@@ -2234,8 +2263,10 @@ function connect() function surrenderBattle() {
       );
 
       showBattleDeck();
+
     }
   );
+
 
   socket.on(
     'battle:waiting',
@@ -2244,8 +2275,10 @@ function connect() function surrenderBattle() {
       addBattleLog(
         `${data.username}님이 전투 포켓몬을 선택했습니다.`
       );
+
     }
   );
+
 
   socket.on(
     'battle:state',
@@ -2259,8 +2292,10 @@ function connect() function surrenderBattle() {
         data.turn;
 
       renderBattleState();
+
     }
   );
+
 
   socket.on(
     'battle:turn',
@@ -2274,8 +2309,10 @@ function connect() function surrenderBattle() {
       addBattleLog(
         `⚡ ${data.username}님의 턴입니다.`
       );
+
     }
   );
+
 
   socket.on(
     'battle:attackResult',
@@ -2285,8 +2322,12 @@ function connect() function surrenderBattle() {
         data
       );
 
-      if (data.specialVideo) {
+      if (
+        data.specialVideo
+      ) {
+
         playSpecialAttackVideo();
+
       }
 
       addBattleLog(
@@ -2296,20 +2337,26 @@ function connect() function surrenderBattle() {
       if (
         data.weakness > 1
       ) {
+
         addBattleLog(
           '🔥 약점 적용 ×2'
         );
+
       }
 
       if (
         data.resistance < 0
       ) {
+
         addBattleLog(
           `🛡️ 저항 ${data.resistance}`
         );
+
       }
+
     }
   );
+
 
   socket.on(
     'battle:knockout',
@@ -2320,8 +2367,10 @@ function connect() function surrenderBattle() {
       addBattleLog(
         `💥 ${data.username}님의 ${data.card.name}이(가) 기절했습니다.`
       );
+
     }
   );
+
 
   socket.on(
     'battle:replace',
@@ -2334,10 +2383,12 @@ function connect() function surrenderBattle() {
       showBattleReplace(
         data.username
       );
+
     }
   );
 
-    socket.on(
+
+  socket.on(
     'battle:finished',
     data => {
 
@@ -2348,18 +2399,23 @@ function connect() function surrenderBattle() {
       if (
         data.reward > 0
       ) {
+
         toast(
           `💰 ${data.rewardPercent}% 보상! ${money(data.reward)} 획득`
         );
+
       }
 
-      battle = null;
-      battleState = null;
+      battle =
+        null;
 
-      // 내 돈 즉시 갱신
+      battleState =
+        null;
+
       api('/api/me')
         .then(
           data => {
+
             me =
               data.user;
 
@@ -2368,11 +2424,13 @@ function connect() function surrenderBattle() {
               [];
 
             refresh();
+
           }
         )
         .catch(
           () => {}
         );
+
     }
   );
 
