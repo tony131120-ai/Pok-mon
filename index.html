@@ -1510,6 +1510,14 @@ async function renderAdmin() {
   d.canManageAdmins === true ||
   me?.username === '기미준';
     const box = $('#adminUsers');
+    console.table(
+  users.map(u => ({
+    id: u.id,
+    username: u.username,
+    is_admin: u.is_admin,
+    type: typeof u.is_admin
+  }))
+);
 console.log('관리자 확인:', {
   me,
   users,
