@@ -1,14 +1,3 @@
-/* =========================================================
-   MEGA RAYQUAZA DROP RATE
-   Rayquaza Evolving 팩 전용
-========================================================= */
-
-const MEGA_RAYQUAZA_DROP_RATE = 100;
-// 100 = 100%
-// 50  = 50%
-// 10  = 10%
-// 1   = 1%
-// 0   = 등장하지 않음
 import express from 'express';
 import http from 'http';
 import path from 'path';
@@ -270,24 +259,6 @@ const SPECIAL_CARD = {
   resistances: []
 };
 
-
-const MEGA_RAYQUAZA_CARD = {
-  cardId: 'mega-rayquaza-ex-storm-emeralda',
-  name: '메가레쿠쟈 ex',
-  image: 'https://cards.image.pokemonkorea.co.kr/data/wmimages/MEGA/M6/M6_110.png?w=512',
-  rarity: 'SAR',
-  price: 100000000,
-  category: 'Pokemon',
-  hp: 700,
-  types: ['Colorless'],
-  attacks: [
-    { name: '화룡점정', damage: 250 }
-  ],
-  weaknesses: [{ type: 'Lightning', value: 2 }],
-  resistances: [],
-  megaRayquaza: true
-};
-
 async function ensureAdminSpecialCard(userId, username) {
   if (String(username) !== '기미준') return;
 
@@ -425,16 +396,6 @@ app.get('/api/packs', (req, res) => {
   res.json(packs);
 });
 
-app.get('/api/ranking', async (req, res) => {
-  try {
- res.json(await ranking());
-  } catch {
-    res.status(500).json({
-      error: '랭킹을 불러오지 못했습니다.'
-    });
-  }
-});
-
 app.get('/api/cards', async (req, res) => {
   try {
     const cards = await getCards();
@@ -445,17 +406,13 @@ app.get('/api/cards', async (req, res) => {
         image: imageUrl(c)
       }))
     );
-  } catch (error) {
-    console.error(
-      'GET /api/cards ERROR:',
-      error
-    );
-
-    res.status(500).json({
-      error: '카드를 불러오지 못했습니다.'
+  } catch {
+    res.status(502).json({
+      error: '카드 데이터를 불러오지 못했습니다.'
     });
   }
 });
+
 /* =========================================================
    SIGNUP
 ========================================================= */
@@ -668,6 +625,7 @@ app.post('/api/open', auth, async (req, res) => {
     }
 
     const all = await getCards();
+
     const normal = commonPool(all);
     const rare = rarePool(all);
 
@@ -679,7 +637,11 @@ app.post('/api/open', auth, async (req, res) => {
 
     for (let i = 0; i < p.n - 1; i++) {
       const c =
-        normal[Math.floor(Math.random() * normal.length)];
+        normal[
+          Math.floor(
+            Math.random() * normal.length
+          )
+        ];
 
       out.push({
         ...c,
@@ -689,64 +651,50 @@ app.post('/api/open', auth, async (req, res) => {
       });
     }
 
-    const megaPulled =
-  p.name === 'Rayquaza Evolving' &&
-  Math.random() * 100 < MEGA_RAYQUAZA_DROP_RATE;
-    if (megaPulled) {
-      out.push({
-        ...MEGA_RAYQUAZA_CARD,
-        id: MEGA_RAYQUAZA_CARD.cardId,
-        image: MEGA_RAYQUAZA_CARD.image,
-        gamePrice: MEGA_RAYQUAZA_CARD.price,
-        final: true,
-        premium: true,
-        megaRayquaza: true
+    const premium = Math.random() < tier(p);
+
+    let candidates = rare;
+
+    if (!premium) {
+      const lowerRare = rare.filter(c => {
+        const r = String(c.rarity || '').toLowerCase();
+        const n = String(c.name || '').toLowerCase();
+
+        return !/(secret|special|hyper|illustration|ultra|vmax|vstar|ex)/.test(
+          r + ' ' + n
+        );
       });
-    } else {
-      const premium = Math.random() < tier(p);
-      let candidates = rare;
 
-      if (!premium) {
-        const lowerRare = rare.filter(c => {
-          const r = String(c.rarity || '').toLowerCase();
-          const n = String(c.name || '').toLowerCase();
-
-          return !/(secret|special|hyper|illustration|ultra|vmax|vstar|ex)/.test(
-            r + ' ' + n
-          );
-        });
-
-        if (lowerRare.length) {
-          candidates = lowerRare;
-        }
+      if (lowerRare.length) {
+        candidates = lowerRare;
       }
-
-      const c =
-        candidates[
-          Math.floor(Math.random() * candidates.length)
-        ];
-
-      out.push({
-        ...c,
-        image: imageUrl(c),
-        gamePrice: priceFor(c, p, true),
-        final: true,
-        premium
-      });
     }
 
+    const c =
+      candidates[
+        Math.floor(
+          Math.random() * candidates.length
+        )
+      ];
+
+    out.push({
+      ...c,
+      image: imageUrl(c),
+      gamePrice: priceFor(c, p, true),
+      final: true,
+      premium
+    });
+
     await pool.query(
-      `UPDATE users SET cash=cash-$1 WHERE id=$2`,
+      `
+      UPDATE users
+      SET cash=cash-$1
+      WHERE id=$2
+      `,
       [p.price, req.user.id]
     );
 
     await broadcastRanking();
-
-    if (megaPulled) {
-      chatSystem(
-        `${req.user.username}님이 메가 레쿠쟈를 뽑았습니다!`
-      );
-    }
 
     res.json({
       pack: p,
@@ -915,33 +863,8 @@ app.post('/api/sell/:id', auth, async (req, res) => {
 
 
 /* =========================================================
-   ADMIN CONTROL
+   ADMIN MONEY CONTROL
 ========================================================= */
-
-function requirePanelToken(req, res, next) {
-  const expected =
-    String(
-      process.env.ADMIN_PANEL_TOKEN || ''
-    ).trim();
-
-  const supplied =
-    String(
-      req.headers['x-admin-panel-token'] || ''
-    ).trim();
-
-  if (
-    !expected ||
-    !supplied ||
-    supplied !== expected
-  ) {
-    return res.status(403).json({
-      error: '관리자 패널 인증이 필요합니다.'
-    });
-  }
-
-  next();
-}
-
 
 async function requireAdmin(req, res, next) {
   if (!req.user || !req.user.is_admin) {
@@ -949,595 +872,80 @@ async function requireAdmin(req, res, next) {
       error: '관리자 권한이 필요합니다.'
     });
   }
-
   next();
 }
 
+app.get('/api/admin/users', auth, requireAdmin, async (req, res) => {
+  try {
+    const q = await pool.query(`
+      SELECT id, username, cash, is_admin
+      FROM users
+      WHERE id <> $1
+      ORDER BY username ASC, id ASC
+    `, [req.user.id]);
 
-/* =========================================================
-   메인 사이트 관리자 설정
-   일반 관리자 + 최고 관리자 사용 가능
-========================================================= */
-
-app.get(
-  '/api/admin/users',
-  auth,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const q = await pool.query(`
-        SELECT
-          id,
-          username,
-          cash,
-          is_admin
-        FROM users
-        ORDER BY username ASC, id ASC
-      `);
-
-      res.json({
-        users: q.rows
-      });
-
-    } catch (e) {
-      console.error(
-        'admin users error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '사용자 목록을 불러오지 못했습니다.'
-      });
-    }
+    res.json({ users: q.rows });
+  } catch (e) {
+    console.error('admin users error', e);
+    res.status(500).json({ error: '사용자 목록을 불러오지 못했습니다.' });
   }
-);
+});
 
+app.post('/api/admin/money', auth, requireAdmin, async (req, res) => {
+  try {
+    const targetId = Number(req.body?.userId);
+    const amount = Math.floor(Number(req.body?.amount));
+    const action = String(req.body?.action || '');
 
-/* =========================================================
-   메인 사이트 돈 지급 / 회수
-   일반 관리자 + 최고 관리자 사용 가능
-========================================================= */
-
-app.post(
-  '/api/admin/money',
-  auth,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const targetId =
-        Number(
-          req.body?.userId
-        );
-
-      const amount =
-        Math.floor(
-          Number(
-            req.body?.amount
-          )
-        );
-
-      const action =
-        String(
-          req.body?.action || ''
-        ).trim();
-
-
-      if (
-        !Number.isInteger(targetId) ||
-        targetId <= 0
-      ) {
-        return res.status(400).json({
-          error:
-            '올바른 사용자를 선택하세요.'
-        });
-      }
-
-
-      if (
-        !Number.isFinite(amount) ||
-        amount <= 0 ||
-        amount > 1000000000000
-      ) {
-        return res.status(400).json({
-          error:
-            '금액은 1 이상이어야 합니다.'
-        });
-      }
-
-
-      if (
-        action !== 'give' &&
-        action !== 'seize'
-      ) {
-        return res.status(400).json({
-          error:
-            '잘못된 작업입니다.'
-        });
-      }
-
-
-      if (
-        targetId ===
-        Number(req.user.id)
-      ) {
-        return res.status(400).json({
-          error:
-            '관리자 자신의 돈은 변경할 수 없습니다.'
-        });
-      }
-
-
-      const sql =
-        action === 'give'
-          ? `
-              UPDATE users
-              SET cash = cash + $1
-              WHERE id = $2
-              RETURNING
-                id,
-                username,
-                cash,
-                is_admin
-            `
-          : `
-              UPDATE users
-              SET cash =
-                GREATEST(
-                  0,
-                  cash - $1
-                )
-              WHERE id = $2
-              RETURNING
-                id,
-                username,
-                cash,
-                is_admin
-            `;
-
-
-      const q =
-        await pool.query(
-          sql,
-          [
-            amount,
-            targetId
-          ]
-        );
-
-
-      if (!q.rowCount) {
-        return res.status(404).json({
-          error:
-            '사용자를 찾을 수 없습니다.'
-        });
-      }
-
-
-      try {
-        await broadcastRanking();
-      } catch (rankingError) {
-        console.error(
-          'broadcast ranking error:',
-          rankingError
-        );
-      }
-
-
-      res.json({
-        success: true,
-        user: q.rows[0],
-        action,
-        amount
-      });
-
-    } catch (e) {
-      console.error(
-        'admin money error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '돈을 변경하지 못했습니다.'
-      });
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ error: '올바른 사용자를 선택하세요.' });
     }
-  }
-);
 
-
-/* =========================================================
-   최고 관리자 전용
-   관리자 부여 / 관리자 해제
-========================================================= */
-
-app.post(
-  '/api/admin/set-admin',
-  requirePanelToken,
-  async (req, res) => {
-    try {
-      const ownerUsername =
-        String(
-          process.env.OWNER_USERNAME || ''
-        ).trim();
-
-
-      if (!ownerUsername) {
-        return res.status(500).json({
-          error:
-            'OWNER_USERNAME이 설정되지 않았습니다.'
-        });
-      }
-
-
-      const targetId =
-        Number(
-          req.body?.userId
-        );
-
-
-      const makeAdmin =
-        Boolean(
-          req.body?.makeAdmin
-        );
-
-
-      if (
-        !Number.isInteger(targetId) ||
-        targetId <= 0
-      ) {
-        return res.status(400).json({
-          error:
-            '올바른 사용자를 선택하세요.'
-        });
-      }
-
-
-      const target =
-        await pool.query(
-          `
-            SELECT
-              id,
-              username,
-              cash,
-              is_admin
-            FROM users
-            WHERE id = $1
-          `,
-          [
-            targetId
-          ]
-        );
-
-
-      if (!target.rowCount) {
-        return res.status(404).json({
-          error:
-            '사용자를 찾을 수 없습니다.'
-        });
-      }
-
-
-      const targetUser =
-        target.rows[0];
-
-
-      if (
-        String(
-          targetUser.username || ''
-        ).trim() ===
-        ownerUsername
-      ) {
-        return res.status(403).json({
-          error:
-            '최고 관리자는 변경할 수 없습니다.'
-        });
-      }
-
-
-      const q =
-        await pool.query(
-          `
-            UPDATE users
-            SET is_admin = $1
-            WHERE id = $2
-            RETURNING
-              id,
-              username,
-              cash,
-              is_admin
-          `,
-          [
-            makeAdmin,
-            targetId
-          ]
-        );
-
-
-      res.json({
-        success: true,
-        user: q.rows[0],
-        action:
-          makeAdmin
-            ? 'grant'
-            : 'revoke'
-      });
-
-    } catch (e) {
-      console.error(
-        'set admin error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '관리자 권한을 변경하지 못했습니다.'
-      });
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000000000) {
+      return res.status(400).json({ error: '금액은 1 이상이어야 합니다.' });
     }
-  }
-);
-/* =========================================================
-   ADMIN PANEL API
-========================================================= */
 
-app.get(
-  '/api/admin/panel/users',
-  requirePanelToken,
-  async (req, res) => {
-    try {
-      const q = await pool.query(`
-        SELECT
-          id,
-          username,
-          cash,
-          is_admin
-        FROM users
-        ORDER BY username ASC, id ASC
-      `);
-
-      res.json({
-        users: q.rows,
-        canManageAdmins: true
-      });
-
-    } catch (e) {
-      console.error(
-        'admin panel users error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '사용자 목록을 불러오지 못했습니다.'
-      });
+    if (targetId === Number(req.user.id)) {
+      return res.status(400).json({ error: '관리자 자신의 돈은 변경할 수 없습니다.' });
     }
-  }
-);
 
-
-app.post(
-  '/api/admin/panel/money',
-  requirePanelToken,
-  async (req, res) => {
-    try {
-      const targetId =
-        Number(req.body?.userId);
-
-      const amount =
-        Math.floor(
-          Number(req.body?.amount)
-        );
-
-      const action =
-        String(
-          req.body?.action || ''
-        );
-
-      if (
-        !Number.isInteger(targetId) ||
-        targetId <= 0
-      ) {
-        return res.status(400).json({
-          error:
-            '올바른 사용자를 선택하세요.'
-        });
-      }
-
-      if (
-        !Number.isFinite(amount) ||
-        amount <= 0 ||
-        amount > 1000000000000
-      ) {
-        return res.status(400).json({
-          error:
-            '금액은 1 이상이어야 합니다.'
-        });
-      }
-
-      if (
-        action !== 'give' &&
-        action !== 'seize'
-      ) {
-        return res.status(400).json({
-          error:
-            '잘못된 작업입니다.'
-        });
-      }
-
-      const sql =
-        action === 'give'
-          ? `
-              UPDATE users
-              SET cash = cash + $1
-              WHERE id = $2
-              RETURNING
-                id,
-                username,
-                cash,
-                is_admin
-            `
-          : `
-              UPDATE users
-              SET cash =
-                GREATEST(
-                  0,
-                  cash - $1
-                )
-              WHERE id = $2
-              RETURNING
-                id,
-                username,
-                cash,
-                is_admin
-            `;
-
-      const q =
-        await pool.query(
-          sql,
-          [amount, targetId]
-        );
-
-      if (!q.rowCount) {
-        return res.status(404).json({
-          error:
-            '사용자를 찾을 수 없습니다.'
-        });
-      }
-
-      if (
-        typeof broadcastRanking ===
-        'function'
-      ) {
-        await broadcastRanking();
-      }
-
-      res.json({
-        success: true,
-        user: q.rows[0],
-        action,
-        amount
-      });
-
-    } catch (e) {
-      console.error(
-        'admin panel money error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '돈을 변경하지 못했습니다.'
-      });
+    if (action !== 'give' && action !== 'seize') {
+      return res.status(400).json({ error: '잘못된 작업입니다.' });
     }
-  }
-);
 
+    const sql = action === 'give'
+      ? `
+          UPDATE users
+          SET cash = cash + $1
+          WHERE id = $2
+          RETURNING id, username, cash, is_admin
+        `
+      : `
+          UPDATE users
+          SET cash = GREATEST(0, cash - $1)
+          WHERE id = $2
+          RETURNING id, username, cash, is_admin
+        `;
 
-app.post(
-  '/api/admin/panel/set-admin',
-  requirePanelToken,
-  async (req, res) => {
-    try {
-      const ownerUsername =
-        String(
-          process.env.OWNER_USERNAME || ''
-        ).trim();
+    const q = await pool.query(sql, [amount, targetId]);
 
-      const targetId =
-        Number(req.body?.userId);
-
-      const makeAdmin =
-        Boolean(
-          req.body?.makeAdmin
-        );
-
-      if (!ownerUsername) {
-        return res.status(500).json({
-          error:
-            'OWNER_USERNAME이 설정되지 않았습니다.'
-        });
-      }
-
-      if (
-        !Number.isInteger(targetId) ||
-        targetId <= 0
-      ) {
-        return res.status(400).json({
-          error:
-            '올바른 사용자를 선택하세요.'
-        });
-      }
-
-      const target =
-        await pool.query(
-          `
-            SELECT
-              id,
-              username,
-              is_admin
-            FROM users
-            WHERE id = $1
-          `,
-          [targetId]
-        );
-
-      if (!target.rowCount) {
-        return res.status(404).json({
-          error:
-            '사용자를 찾을 수 없습니다.'
-        });
-      }
-
-      const targetUser =
-        target.rows[0];
-
-      if (
-        String(
-          targetUser.username || ''
-        ).trim() === ownerUsername
-      ) {
-        return res.status(403).json({
-          error:
-            '최고 관리자는 변경할 수 없습니다.'
-        });
-      }
-
-      const q =
-        await pool.query(
-          `
-            UPDATE users
-            SET is_admin = $1
-            WHERE id = $2
-            RETURNING
-              id,
-              username,
-              cash,
-              is_admin
-          `,
-          [
-            makeAdmin,
-            targetId
-          ]
-        );
-
-      res.json({
-        success: true,
-        user: q.rows[0]
-      });
-
-    } catch (e) {
-      console.error(
-        'admin panel set-admin error:',
-        e
-      );
-
-      res.status(500).json({
-        error:
-          '관리자 권한을 변경하지 못했습니다.'
-      });
+    if (!q.rowCount) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
     }
+
+    await broadcastRanking();
+
+    res.json({
+      user: q.rows[0],
+      action,
+      amount
+    });
+  } catch (e) {
+    console.error('admin money error', e);
+    res.status(500).json({ error: '돈을 변경하지 못했습니다.' });
   }
-);
+});
+
 /* =========================================================
    RANKING
 ========================================================= */
@@ -1564,62 +972,6 @@ async function broadcastRanking() {
   } catch (e) {
     console.error('ranking error', e);
   }
-}
-
-async function giveBattleReward(loserId, winnerId) {
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    const q = await client.query(
-      `SELECT cash FROM users WHERE id=$1 FOR UPDATE`,
-      [loserId]
-    );
-
-    const loserCash = Number(q.rows[0]?.cash || 0);
-    const rewardPercent =
-      Math.floor(Math.random() * 8) + 3;
-    const reward = Math.floor(
-      loserCash * rewardPercent / 100
-    );
-
-    if (reward > 0) {
-      await client.query(
-        `UPDATE users
-         SET cash=GREATEST(0,cash-$1)
-         WHERE id=$2`,
-        [reward, loserId]
-      );
-
-      await client.query(
-        `UPDATE users
-         SET cash=cash+$1
-         WHERE id=$2`,
-        [reward, winnerId]
-      );
-    }
-
-    await client.query('COMMIT');
-
-    return {
-      reward,
-      rewardPercent
-    };
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
-  }
-}
-
-function chatSystem(message) {
-  io.emit('chat:message', {
-    username: 'SYSTEM',
-    message: String(message || ''),
-    system: true
-  });
 }
 
 /* =========================================================
@@ -2139,47 +1491,26 @@ io.on(
             user.username
           );
 
-        const userId =
-  Number(user.id);
+          online.set(
+            Number(user.id),
+            {
+              userId:
+                Number(user.id),
+              username:
+                user.username,
+              socketId:
+                socket.id
+            }
+          );
 
-const oldConnection =
-  online.get(userId);
+          socket.data.userId =
+            Number(user.id);
 
-if (
-  oldConnection &&
-  oldConnection.socketId !== socket.id
-) {
-  const oldSocket =
-    io.sockets.sockets.get(
-      oldConnection.socketId
-    );
+          io.emit(
+            'online',
+            onlineList()
+          );
 
-  if (oldSocket) {
-    oldSocket.disconnect(true);
-  }
-}
-
-online.set(
-  userId,
-  {
-    userId,
-    username:
-      user.username,
-    socketId:
-      socket.id
-  }
-);
-
-socket.data.userId =
-  userId;
-
-socket.data.username =
-  user.username;
-
-io.emit(
-  'online',
-  onlineList()
-);
           socket.emit(
             'ranking',
             await ranking()
@@ -2758,234 +2089,250 @@ socket.on(
 
     socket.on(
       'battle:attack',
-      async ({ battleId, attackIndex }) => {
+      ({
+        battleId,
+        attackIndex
+      }) => {
         try {
-          const battle = battles.get(battleId);
+          const battle =
+            battles.get(
+              battleId
+            );
 
           if (!battle) {
-            throw new Error('배틀 없음');
+            throw new Error(
+              '배틀 없음'
+            );
           }
 
-          if (battle.status !== 'playing') {
-            throw new Error('지금은 공격할 수 없습니다.');
+          if (
+            battle.status !==
+            'playing'
+          ) {
+            throw new Error(
+              '지금은 공격할 수 없습니다.'
+            );
           }
 
-          const attackerId = Number(socket.data.userId);
+          const attackerId =
+            Number(
+              socket.data.userId
+            );
 
-          if (battle.turn !== attackerId) {
-            throw new Error('상대의 턴입니다.');
+          if (
+            battle.turn !==
+            attackerId
+          ) {
+            throw new Error(
+              '상대의 턴입니다.'
+            );
           }
 
-          const attacker = playerOf(battle, attackerId);
-          const defender = otherPlayer(battle, attackerId);
+          const attacker =
+            playerOf(
+              battle,
+              attackerId
+            );
 
-          if (!attacker?.active || !defender?.active) {
-            throw new Error('전투 포켓몬이 없습니다.');
+          const defender =
+            otherPlayer(
+              battle,
+              attackerId
+            );
+
+          if (
+            !attacker.active ||
+            !defender.active
+          ) {
+            throw new Error(
+              '전투 포켓몬이 없습니다.'
+            );
           }
 
-          const attack = attacker.active.attacks?.[Number(attackIndex)];
+          const attack =
+            attacker.active.attacks[
+              Number(attackIndex)
+            ];
 
           if (!attack) {
-            throw new Error('기술을 찾을 수 없습니다.');
+            throw new Error(
+              '기술을 찾을 수 없습니다.'
+            );
           }
 
-          const result = calculateDamage(
-            attacker.active,
-            defender.active,
-            attack
-          );
+          const result =
+            calculateDamage(
+              attacker.active,
+              defender.active,
+              attack
+            );
 
-          defender.active.currentHp = Math.max(
-            0,
-            Number(defender.active.currentHp) - result.damage
-          );
-
-          const isMegaRayquaza =
-            attacker.active.cardId === MEGA_RAYQUAZA_CARD.cardId &&
-            String(attack.name || '') === '화룡점정';
-
-          const isBossVideo =
-            attacker.active.cardId === SPECIAL_CARD.cardId &&
-            String(attack.name || '') === '불대문자';
+          defender.active.currentHp =
+            Math.max(
+              0,
+              Number(
+                defender.active.currentHp
+              ) - result.damage
+            );
 
           battleBroadcast(
             battle,
             'battle:attackResult',
             {
-              attacker: attacker.username,
-              defender: defender.username,
-              attackName: attack.name || '공격',
-              specialVideo: isMegaRayquaza || isBossVideo,
-              specialVideoType: isMegaRayquaza
-                ? 'mega-rayquaza'
-                : isBossVideo
-                  ? 'boss'
-                  : null,
-              damage: result.damage,
-              base: result.base,
-              weakness: result.weakness,
-              resistance: result.resistance,
-              defenderHp: defender.active.currentHp
+              attacker:
+                attacker.username,
+              defender:
+                defender.username,
+              attackName:
+                attack.name ||
+                '공격',
+              specialVideo:
+                attacker.active.cardId === SPECIAL_CARD.cardId &&
+                String(attack.name || '') === '불대문자',
+              damage:
+                result.damage,
+              base:
+                result.base,
+              weakness:
+                result.weakness,
+              resistance:
+                result.resistance,
+              defenderHp:
+                defender.active.currentHp
             }
           );
 
-          if (defender.active.currentHp <= 0) {
-            const defeated = defender.active;
+          if (
+            defender.active.currentHp <=
+            0
+          ) {
+            const defeated =
+              defender.active;
 
             battleBroadcast(
               battle,
               'battle:knockout',
               {
-                username: defender.username,
-                card: cleanBattleCard(defeated)
+                username:
+                  defender.username,
+                card:
+                  cleanBattleCard(
+                    defeated
+                  )
               }
             );
 
-            defender.deck = defender.deck.filter(
-              (_, i) => i !== defender.activeSlot
-            );
-
-            defender.active = null;
-            defender.activeSlot = null;
-
-            if (defender.deck.length === 0) {
-              battle.status = 'finished';
-
-              const rewardInfo = await giveBattleReward(
-                defender.id,
-                attacker.id
+            defender.deck =
+              defender.deck.filter(
+                (_, i) =>
+                  i !==
+                  defender.activeSlot
               );
+
+            defender.active =
+              null;
+
+            defender.activeSlot =
+              null;
+
+            if (
+              defender.deck.length ===
+              0
+            ) {
+              battle.status =
+                'finished';
 
               battleBroadcast(
                 battle,
                 'battle:finished',
                 {
-                  winner: attacker.username,
-                  loser: defender.username,
-                  reward: rewardInfo.reward,
-                  rewardPercent: rewardInfo.rewardPercent,
-                  surrendered: false
+                  winner:
+                    attacker.username,
+                  loser:
+                    defender.username
                 }
               );
 
-              await broadcastRanking();
-              battles.delete(battle.id);
+              battles.delete(
+                battle.id
+              );
+
               return;
             }
 
-            battle.status = 'chooseActive';
-            battle.turn = defender.id;
+            battle.status =
+              'chooseActive';
+
+            // 기절시킨 뒤에도 턴 순서는 번갈아 진행합니다.
+            // 상대가 새 포켓몬을 선택한 뒤 상대 턴이 됩니다.
+            battle.turn =
+              defender.id;
 
             const s1 = userSocket(battle.p1.id);
             const s2 = userSocket(battle.p2.id);
-
-            if (s1) {
-              io.to(s1).emit(
-                'battle:state',
-                battleStateFor(battle, battle.p1.id)
-              );
-            }
-
-            if (s2) {
-              io.to(s2).emit(
-                'battle:state',
-                battleStateFor(battle, battle.p2.id)
-              );
-            }
+            if (s1) io.to(s1).emit('battle:state', battleStateFor(battle, battle.p1.id));
+            if (s2) io.to(s2).emit('battle:state', battleStateFor(battle, battle.p2.id));
 
             battleBroadcast(
               battle,
               'battle:replace',
-              { username: defender.username }
+              {
+                username:
+                  defender.username
+              }
             );
 
             return;
           }
 
-          battle.turn = defender.id;
+          battle.turn =
+            defender.id;
 
-          const s1 = userSocket(battle.p1.id);
-          const s2 = userSocket(battle.p2.id);
+          const s1 =
+            userSocket(
+              battle.p1.id
+            );
+
+          const s2 =
+            userSocket(
+              battle.p2.id
+            );
 
           if (s1) {
             io.to(s1).emit(
               'battle:state',
-              battleStateFor(battle, battle.p1.id)
+              battleStateFor(
+                battle,
+                battle.p1.id
+              )
             );
           }
 
           if (s2) {
             io.to(s2).emit(
               'battle:state',
-              battleStateFor(battle, battle.p2.id)
+              battleStateFor(
+                battle,
+                battle.p2.id
+              )
             );
           }
 
           battleBroadcast(
             battle,
             'battle:turn',
-            { username: defender.username }
-          );
-        } catch (e) {
-          socket.emit(
-            'battle:error',
-            { message: e.message }
-          );
-        }
-      }
-    );
-
-    /* ---------------------------------------------
-       SURRENDER
-    --------------------------------------------- */
-
-    socket.on(
-      'battle:surrender',
-      async ({ battleId }) => {
-        try {
-          const battle = battles.get(battleId);
-
-          if (!battle) {
-            throw new Error('배틀을 찾을 수 없습니다.');
-          }
-
-          if (battle.status === 'finished') {
-            throw new Error('이미 종료된 배틀입니다.');
-          }
-
-          const surrenderId = Number(socket.data.userId);
-          const surrenderPlayer = playerOf(battle, surrenderId);
-          const winner = otherPlayer(battle, surrenderId);
-
-          if (!surrenderPlayer || !winner) {
-            throw new Error('배틀 참가자가 아닙니다.');
-          }
-
-          battle.status = 'finished';
-
-          const rewardInfo = await giveBattleReward(
-            surrenderPlayer.id,
-            winner.id
-          );
-
-          battleBroadcast(
-            battle,
-            'battle:finished',
             {
-              winner: winner.username,
-              loser: surrenderPlayer.username,
-              reward: rewardInfo.reward,
-              rewardPercent: rewardInfo.rewardPercent,
-              surrendered: true
+              username:
+                defender.username
             }
           );
-
-          await broadcastRanking();
-          battles.delete(battle.id);
         } catch (e) {
           socket.emit(
             'battle:error',
-            { message: e.message }
+            {
+              message:
+                e.message
+            }
           );
         }
       }
@@ -3138,40 +2485,6 @@ socket.on(
     );
 
     /* ---------------------------------------------
-       LIVE CHAT
-    --------------------------------------------- */
-
-    socket.on(
-      'chat:send',
-      ({ message }) => {
-        try {
-          const username = socket.data.username || '';
-          let text = String(message || '').trim();
-
-          if (!username || !text) return;
-
-          if (text.length > 100) {
-            text = text.slice(0, 100);
-          }
-
-          io.emit(
-            'chat:message',
-            {
-              username,
-              message: text,
-              system: false
-            }
-          );
-        } catch (e) {
-          socket.emit(
-            'chat:error',
-            { message: '채팅을 보낼 수 없습니다.' }
-          );
-        }
-      }
-    );
-
-    /* ---------------------------------------------
        DISCONNECT
     --------------------------------------------- */
 
@@ -3261,82 +2574,21 @@ app.get('/', (req, res) => {
 /* =========================================================
    START
 ========================================================= */
-app.post('/api/admin/panel-login', async (req, res) => {
-  try {
-    const inputToken =
-      String(req.body?.token || '').trim();
 
-    const adminToken =
-      String(
-        process.env.ADMIN_PANEL_TOKEN || ''
-      ).trim();
-
-    if (!adminToken) {
-      return res.status(500).json({
-        error: 'ADMIN_PANEL_TOKEN이 설정되지 않았습니다.'
-      });
-    }
-
-    if (
-      !inputToken ||
-      inputToken !== adminToken
-    ) {
-      return res.status(401).json({
-        error: '관리자 토큰이 올바르지 않습니다.'
-      });
-    }
-
-    res.json({
-      success: true
-    });
-
-  } catch (e) {
-    console.error(
-      'admin panel login error:',
-      e
-    );
-
-    res.status(500).json({
-      error: '관리자 인증에 실패했습니다.'
-    });
-  }
-});
 async function boot() {
   await setupDatabase();
 
-  const PORT =
-    process.env.PORT || 3000;
-
   server.listen(
     PORT,
-    '0.0.0.0',
     () => {
       console.log(
-        `Server running on port ${PORT}`
+        `PokéPack Vault online on ${PORT}`
       );
     }
   );
 }
 
-boot().catch((error) => {
-  console.error(
-    'BOOT ERROR:',
-    error
-  );
-
+boot().catch(e => {
+  console.error(e);
   process.exit(1);
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(
-    path.join(
-      process.cwd(),
-      'admin.html'
-    )
-  );
-});
-app.get('/admin', (req, res) => {
-  res.sendFile(
-    path.join(process.cwd(), 'admin.html')
-  );
 });
