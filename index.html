@@ -1860,8 +1860,25 @@ function renderCard() {
   image.draggable =
     false;
 
-  const urls =
-    imageCandidates(c);
+ let urls = [];
+
+if (c.megaRayquaza && c.image) {
+
+  urls = [
+    c.image
+  ];
+
+} else {
+
+  urls = [
+    String(c.image || '').replace(/\/$/, '') + '/high.webp',
+    String(c.image || '').replace(/\/$/, '') + '/high.png',
+    String(c.image || '').replace(/\/$/, '') + '/low.webp',
+    String(c.image || '').replace(/\/$/, '') + '/low.png',
+    String(c.image || '').replace(/\/$/, '') + '/high.jpg'
+  ];
+
+}
 
   let k = 0;
 
