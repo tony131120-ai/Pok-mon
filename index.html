@@ -1165,17 +1165,22 @@ pointer-events: auto;
 <script>
   function imageCandidates(c) {
 
-  const b =
-    String(
-      c?.image || ''
-    ).replace(
-      /\/$/,
-      ''
-    );
+  const image =
+    String(c?.image || '').trim();
 
-  if (!b) {
+  if (!image) {
     return [];
   }
+
+  // 이미 완성된 이미지 주소면 이것 하나만 사용
+  if (
+    /^https?:\/\//i.test(image)
+  ) {
+    return [image];
+  }
+
+  return [];
+}
 
   // 이미 확장자가 붙어 있는 이미지 주소
   if (
