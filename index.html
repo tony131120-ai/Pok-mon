@@ -1888,30 +1888,33 @@ console.log('카드 이미지 확인:', c, imageCandidates(c));
         'transparent';
     };
 
-  image.onerror =
-    () => {
+image.onerror =
+  () => {
 
-      if (
-        k <
-        urls.length
-      ) {
+    if (
+      k <
+      urls.length
+    ) {
 
-        image.src =
-          urls[k++];
+      image.src =
+        urls[k++];
 
-      } else {
+    } else {
 
-        image.removeAttribute(
-          'src'
-        );
+      console.error(
+        '카드 이미지 로딩 실패:',
+        c.image
+      );
 
-        image.alt =
-          '';
+      image.src =
+        c.image || '';
 
-        image.style.background =
-          'linear-gradient(145deg,#1b2740,#0b1020)';
-      }
-    };
+      image.alt =
+        c.name ||
+        'Pokemon Card';
+
+    }
+  };
 
   if (urls.length) {
     image.src =
