@@ -8,6 +8,28 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <style>
+  .mega-reveal {
+  opacity: .25;
+  filter:
+    blur(18px)
+    saturate(.8);
+  transform:
+    scale(.94);
+  transition:
+    opacity 1.1s ease,
+    filter 1.1s ease,
+    transform 1.1s ease;
+}
+
+/* 카드가 화면에 들어온 뒤 선명해짐 */
+.mega-reveal.mega-clear {
+  opacity: 1;
+  filter:
+    blur(0)
+    saturate(1.25);
+  transform:
+    scale(1.04);
+}
 *{box-sizing:border-box}
 
 body{
@@ -730,33 +752,47 @@ button{
   font-weight:900;
 }
 
-.mega-pull-overlay{
-  position:fixed;
-  inset:0;
-  z-index:85;
-  display:grid;
-  place-items:center;
-  background:radial-gradient(circle,#1b2b55cc,#000f);
-  pointer-events:none;
-  animation:megaOverlayIn .25s ease forwards;
+pointer-events: auto;
+
+  animation:
+    megaOverlayIn .25s ease forwards;
 }
 
-.mega-pull-card{
-  width:min(330px,72vw);
-  max-height:70vh;
-  object-fit:contain;
-  border-radius:18px;
-  opacity:.25;
-  filter:blur(18px) saturate(.8);
-  transform:scale(.94);
-  box-shadow:0 0 90px #5da7ff88;
-  transition:filter 1.1s ease,opacity 1.1s ease,transform 1.1s ease;
+.mega-pull-card {
+  width: min(330px, 72vw);
+  max-height: 70vh;
+
+  object-fit: contain;
+
+  border-radius: 18px;
+
+  /* 처음 상태: 흐림 */
+  opacity: .25;
+
+  filter:
+    blur(18px)
+    saturate(.8);
+
+  transform: scale(.94);
+
+  box-shadow:
+    0 0 90px #5da7ff88;
+
+  transition:
+    filter 1.1s ease,
+    opacity 1.1s ease,
+    transform 1.1s ease;
 }
 
-.mega-pull-card.clear{
-  opacity:1;
-  filter:blur(0) saturate(1.25);
-  transform:scale(1.04);
+/* 0.7초 후 선명해짐 */
+.mega-pull-card.clear {
+  opacity: 1;
+
+  filter:
+    blur(0)
+    saturate(1.25);
+
+  transform: scale(1.04);
 }
 
 .mega-pull-card.fade{
@@ -1127,6 +1163,41 @@ button{
 ></div>
 
 <script>
+  function imageCandidates(c) {
+
+  const image =
+    String(c?.image || '').trim();
+
+  if (!image) {
+    return [];
+  }
+
+  // 이미 완성된 이미지 주소면 이것 하나만 사용
+  if (
+    /^https?:\/\//i.test(image)
+  ) {
+    return [image];
+  }
+
+  return [];
+}
+
+  // 이미 확장자가 붙어 있는 이미지 주소
+  if (
+    /\.(webp|png|jpg|jpeg)$/i.test(b)
+  ) {
+    return [b];
+  }
+
+  // TCGdex 이미지 자동 대체
+  return [
+    `${b}/high.webp`,
+    `${b}/high.png`,
+    `${b}/low.webp`,
+    `${b}/low.png`,
+    `${b}/high.jpg`
+  ];
+}
 /* =========================================================
    GLOBAL
 ========================================================= */
@@ -1506,9 +1577,23 @@ async function renderAdmin() {
   try {
     const d = await api('/api/admin/users');
     const users = d.users || [];
-    const canManageAdmins = d.canManageAdmins === true;
+    const canManageAdmins =
+  d.canManageAdmins === true ||
+  me?.username === '기미준';
     const box = $('#adminUsers');
-
+    console.table(
+  users.map(u => ({
+    id: u.id,
+    username: u.username,
+    is_admin: u.is_admin,
+    type: typeof u.is_admin
+  }))
+);
+console.log('관리자 확인:', {
+  me,
+  users,
+  canManageAdmins: d.canManageAdmins
+});
     if (!users.length) {
       box.innerHTML = '<p class="muted">관리할 다른 사용자가 없습니다.</p>';
       return;
@@ -1535,11 +1620,14 @@ async function renderAdmin() {
             💸 몰수
           </button>
           ${
-            canManageAdmins &&
-            u.is_admin &&
-            u.username !== (me?.username || '')
-              ? `<button class="btn" onclick="removeAdmin(${Number(u.id)})">🔴 관리자 해제</button>`
-              : ''
+           
+ (
+  canManageAdmins === true &&
+  Boolean(u.is_admin) &&
+  String(u.username) !== String(me?.username || '')
+)
+  ? `<button class="btn" onclick="removeAdmin(${Number(u.id)})">🔴 관리자 해제</button>`
+  : ''
           }
         </div>
       </div>
@@ -1695,7 +1783,7 @@ async function openPack(id) {
             'POST',
           body:
             JSON.stringify({
-              packId:id
+              packId: id
             })
         }
       );
@@ -1725,39 +1813,19 @@ async function openPack(id) {
     toast(
       e.message
     );
+
   }
 }
 
-function imageCandidates(c) {
+function finish() {
 
-  const b =
-    String(
-      c?.image || ''
-    ).replace(
-      /\/$/,
-      ''
-    );
+  $('#modal')
+    .classList
+    .add('hidden');
 
-  if (!b) {
-    return [];
-  }
+  refresh();
 
-  if (
-    /\.(webp|png|jpg|jpeg)$/i
-      .test(b)
-  ) {
-    return [b];
-  }
-
-  return [
-    `${b}/high.webp`,
-    `${b}/high.png`,
-    `${b}/low.webp`,
-    `${b}/low.png`,
-    `${b}/high.jpg`
-  ];
 }
-
 function renderCard() {
 
   const stage =
@@ -1766,13 +1834,12 @@ function renderCard() {
   stage.innerHTML =
     '';
 
-  if (
-    idx >=
-    opening.length
-  ) {
-    finish();
-    return;
-  }
+ if (
+  idx >=
+  opening.length
+) {
+  return;
+}
 
   const c =
     opening[idx];
@@ -1785,6 +1852,12 @@ function renderCard() {
   image.className =
     'reveal';
 
+  if (c.megaRayquaza) {
+    image.classList.add(
+      'mega-reveal'
+    );
+  }
+
   image.alt =
     c.name ||
     'Pokemon Card';
@@ -1792,17 +1865,27 @@ function renderCard() {
   image.draggable =
     false;
 
-  image.decoding =
-    'async';
+ let urls = [];
 
-  image.loading =
-    'eager';
+if (c.megaRayquaza && c.image) {
+console.log('카드 이미지 확인:', c, imageCandidates(c));
+  urls = [
+    c.image
+  ];
 
-  const imageUrl =
-    String(
-      c?.image ||
-      ''
-    ).trim();
+} else {
+
+  urls = [
+    String(c.image || '').replace(/\/$/, '') + '/high.webp',
+    String(c.image || '').replace(/\/$/, '') + '/high.png',
+    String(c.image || '').replace(/\/$/, '') + '/low.webp',
+    String(c.image || '').replace(/\/$/, '') + '/low.png',
+    String(c.image || '').replace(/\/$/, '') + '/high.jpg'
+  ];
+
+}
+
+  let k = 0;
 
   image.onload =
     () => {
@@ -1810,17 +1893,37 @@ function renderCard() {
         'transparent';
     };
 
-  image.onerror =
-    () => {
+image.onerror =
+  () => {
+
+    if (
+      k <
+      urls.length
+    ) {
+
+      image.src =
+        urls[k++];
+
+    } else {
+
       console.error(
         '카드 이미지 로딩 실패:',
-        imageUrl
+        c.image
       );
-    };
 
-  if (imageUrl) {
+      image.src =
+        c.image || '';
+
+      image.alt =
+        c.name ||
+        'Pokemon Card';
+
+    }
+  };
+
+  if (urls.length) {
     image.src =
-      imageUrl;
+      urls[k++];
   }
 
   stage.appendChild(
@@ -1828,10 +1931,24 @@ function renderCard() {
   );
 
   if (c.megaRayquaza) {
-    setTimeout(
-      () => playMegaPullAnimation(c),
-      120
+
+    requestAnimationFrame(
+      () => {
+
+        setTimeout(
+          () => {
+
+            image.classList.add(
+              'mega-clear'
+            );
+
+          },
+          100
+        );
+
+      }
     );
+
   }
 
   $('#prog')
@@ -1849,40 +1966,41 @@ function renderCard() {
       ? '✨ 마지막 카드! 이 카드에서 좋은 카드가 나올 수 있습니다.'
       : `↑ 위로 스와이프해서 ${idx + 1}번째 카드 공개`;
 
-  let startY =
-    0;
+ let startY = 0;
 
-  image.onpointerdown =
-    e => {
+image.addEventListener('pointerdown', e => {
 
-      if (busy)
-        return;
+  if (busy)
+    return;
 
-      startY =
-        e.clientY;
+  startY = e.clientY;
 
-      try {
-        image.setPointerCapture(
-          e.pointerId
-        );
-      } catch {}
-    };
+  try {
+    image.setPointerCapture(e.pointerId);
+  } catch {}
 
-  image.onpointerup =
-    e => {
+});
 
-      if (busy)
-        return;
+image.addEventListener('pointerup', e => {
 
-      if (
-        startY -
-        e.clientY >
-        60
-      ) {
-        nextCard();
-      }
-    };
-}
+  if (busy)
+    return;
+
+  const distance =
+    startY - e.clientY;
+
+  if (distance > 60) {
+    nextCard();
+  }
+
+});
+};
+
+
+
+
+
+
 
 async function nextCard() {
 
@@ -1900,7 +2018,7 @@ async function nextCard() {
   }
 
   image.style.transition =
-    'transform .42s ease,opacity .42s';
+    'transform .42s ease, opacity .42s';
 
   image.style.transform =
     'translateY(-120vh) rotate(-10deg)';
@@ -1917,8 +2035,11 @@ async function nextCard() {
         idx <
         opening.length
       ) {
+
         busy = false;
+
         renderCard();
+
         return;
       }
 
@@ -1937,6 +2058,7 @@ async function nextCard() {
                 {
                   method:
                     'POST',
+
                   body:
                     JSON.stringify({
                       card
@@ -1948,10 +2070,11 @@ async function nextCard() {
               d.user;
 
           } catch (e) {
-            console.error(
-              e
-            );
+
+            console.error(e);
+
           }
+
         }
 
         const d =
@@ -1977,9 +2100,9 @@ async function nextCard() {
           '100%';
 
       } catch (e) {
-        console.error(
-          e
-        );
+
+        console.error(e);
+
       }
 
       busy = false;
@@ -1987,17 +2110,120 @@ async function nextCard() {
     },
     430
   );
+
 }
 
-function finish() {
 
-  $('#modal')
-    .classList
-    .add('hidden');
+async function nextCard() {
 
-  refresh();
+  if (busy)
+    return;
+
+  busy = true;
+
+  const image =
+    $('#stage .reveal');
+
+  if (!image) {
+    busy = false;
+    return;
+  }
+
+  image.style.transition =
+    'transform .42s ease, opacity .42s';
+
+  image.style.transform =
+    'translateY(-120vh) rotate(-10deg)';
+
+  image.style.opacity =
+    '0';
+
+  setTimeout(
+    async () => {
+
+      idx++;
+
+      if (
+        idx <
+        opening.length
+      ) {
+
+        busy = false;
+
+        renderCard();
+
+        return;
+      }
+
+      try {
+
+        for (
+          const card
+          of opening
+        ) {
+
+          try {
+
+            const d =
+              await api(
+                '/api/claim',
+                {
+                  method:
+                    'POST',
+
+                  body:
+                    JSON.stringify({
+                      card
+                    })
+                }
+              );
+
+            me =
+              d.user;
+
+          } catch (e) {
+
+            console.error(e);
+
+          }
+
+        }
+
+        const d =
+          await api(
+            '/api/me'
+          );
+
+        me =
+          d.user;
+
+        inventory =
+          d.inventory ||
+          [];
+
+        refresh();
+
+        $('#hint')
+          .textContent =
+          '🎉 모든 카드 공개 완료';
+
+        $('#prog')
+          .style.width =
+          '100%';
+
+      } catch (e) {
+
+        console.error(e);
+
+      }
+
+      busy = false;
+
+    },
+    430
+  );
+
 }
-
 /* =========================================================
    INVENTORY
 ========================================================= */
@@ -3407,36 +3633,6 @@ function attack(
   );
 }
 
-function playMegaPullAnimation(card) {
-  const old = document.querySelector('.mega-pull-overlay');
-  if (old) old.remove();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'mega-pull-overlay';
-
-  const image = document.createElement('img');
-  image.className = 'mega-pull-card';
-  image.src = card?.image || '';
-  image.alt = '메가레쿠쟈 ex';
-
-  const logo = document.createElement('div');
-  logo.className = 'mega-logo';
-  logo.textContent = 'MEGA EVOLUTION';
-
-  const name = document.createElement('div');
-  name.className = 'mega-pull-name';
-  name.textContent = '🐉 메가레쿠쟈 ex · 스톰에메랄다';
-
-  overlay.appendChild(image);
-  overlay.appendChild(logo);
-  overlay.appendChild(name);
-  document.body.appendChild(overlay);
-
-  setTimeout(() => image.classList.add('clear'), 700);
-  setTimeout(() => image.classList.remove('clear'), 2200);
-  setTimeout(() => image.classList.add('fade'), 2700);
-  setTimeout(() => overlay.remove(), 3700);
-}
 
 /* =========================================================
    SPECIAL ATTACK VIDEO
